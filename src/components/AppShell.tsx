@@ -6,8 +6,7 @@ import { useAtalhosDeApresentacao } from '@/app/shortcuts'
 import { PresenterBar } from '@/components/PresenterBar'
 import { PresenterNotes } from '@/components/PresenterNotes'
 import { SideNav } from '@/components/SideNav'
-import { NarrativeOverlay } from '@/narrative/NarrativeOverlay'
-import { useNarrative } from '@/narrative/store'
+import { NarrativeOverlay, NarrativePanel } from '@/narrative/NarrativeOverlay'
 import { Surface } from '@/components/Surface'
 import { TopBar } from '@/components/TopBar'
 import { useSimulation } from '@/engine/store'
@@ -21,7 +20,6 @@ export function AppShell() {
   const ciclo = useSimulation((s) => s.ciclo)
   const ligarFlags = useSimulation((s) => s.ligarFlags)
   const apresentando = useSimulation((s) => s.apresentacao.ativa)
-  const narrando = useNarrative((s) => s.ativa)
   const { search } = useLocation()
 
   useAtalhosDeApresentacao()
@@ -34,14 +32,17 @@ export function AppShell() {
 
   return (
     <Surface surface="ink" className="flex h-full flex-col">
-      <TopBar playbookVersion={playbookVersion} ciclo={ciclo} />
+      {/* Acima do escurecimento da narrativa: a versão do playbook e o ciclo ficam
+          sempre visíveis, e o botão de entrar e sair continua clicável. */}
+      <div className="relative z-50">
+        <TopBar playbookVersion={playbookVersion} ciclo={ciclo} />
+      </div>
       <div className="relative flex min-h-0 flex-1">
         <SideNav />
-        {/* Enquanto a narrativa conduz, o conteúdo recua a largura do painel: o
-            elemento destacado tem que caber inteiro no que sobra da tela. */}
-        <main className={`min-w-0 flex-1 overflow-y-auto ${narrando ? 'pr-[26rem]' : ''}`}>
+        <main className="min-w-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>
+        <NarrativePanel />
         <PresenterNotes />
       </div>
       {apresentando ? <PresenterBar /> : null}

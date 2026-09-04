@@ -365,8 +365,18 @@ linguagem de quem não conhece migração de SAP, a rota da tela de fundo, o sel
 destacar e uma nota de apresentador. A regra de escrita dos bullets é dura: frase curta, nada de
 jargão sem explicação junto, nada de palavra inventada.
 
-**A narrativa é o estado inicial.** Ao abrir, ela está ligada. "Explorar livremente" sai a
-qualquer momento e "Retomar apresentação" volta na cena onde parou.
+**A narrativa é o estado inicial.** Ao abrir, ela está ligada.
+
+**Um botão só, sempre no mesmo lugar.** Na barra superior: "Explorar livremente" enquanto narra,
+"Ver apresentação" fora dela — e o rótulo diz qual das duas coisas o clique faz. Sair guarda a
+cena; voltar retoma exatamente onde parou. Dois controles para a mesma escolha confundiam, e o
+pino flutuante que existia ocupava um canto sem precisar. O roteiro do apresentador (tecla `P`) é
+outra coisa e continua só no teclado: ele conduz quem apresenta, a narrativa conduz quem assiste.
+
+Para o botão funcionar, o painel da cena fica **no fluxo** da linha de conteúdo, não sobreposto:
+assim a barra superior continua inteira e clicável, e a versão do playbook e o ciclo seguem
+visíveis durante a narração como em qualquer outra tela. O escurecimento cobre o conteúdo, nunca
+a barra.
 
 - A tela real fica ao fundo, funcionando, escurecida, com o elemento da cena em foco. O
   escurecimento é a sombra do próprio buraco do foco — uma sombra enorme para fora —, então não

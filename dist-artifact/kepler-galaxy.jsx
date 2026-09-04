@@ -647,8 +647,9 @@ const T = {
     anterior: 'Cena anterior',
     reiniciar: 'Voltar ao início',
     explorar: 'Explorar livremente',
-    retomar: 'Retomar apresentação',
-    retomarNota: 'Volta na cena onde você parou.',
+    verApresentacao: 'Ver apresentação',
+    dicaEntrar: 'Assista à apresentação guiada de 15 cenas. O roteiro do apresentador continua na tecla P.',
+    dicaSair: 'Fecha a apresentação e libera as telas para você clicar.',
     tocar: 'Reproduzir sozinho',
     pausar: 'Pausar',
     automatico: 'Modo automático',
@@ -8331,16 +8332,9 @@ function NarrativeOverlay({ estado, dispatch }) {
     return () => window.removeEventListener('keydown', aoTeclar)
   }, [ativa, dispatch])
 
-  if (!ativa) {
-    return (
-      <div className="fixed bottom-3 left-1/2 z-40 -translate-x-1/2">
-        <Botao variante="fill" icone={Play} titulo={t.retomarNota}
-          onClick={() => dispatch({ tipo: 'narrativa-retomar' })}>
-          {t.retomar}
-        </Botao>
-      </div>
-    )
-  }
+  // Fora da narrativa não há pino flutuante: quem entra e sai é o botão único da
+  // barra superior, sempre no mesmo lugar.
+  if (!ativa) return null
 
   if (encerrada) {
     return (
@@ -8362,21 +8356,34 @@ function NarrativeOverlay({ estado, dispatch }) {
 
   return (
     <>
-      {/* A área escurecida avança a cena ao clique; o painel não. */}
+      {/* A área escurecida avança a cena ao clique; o painel e a barra superior
+          ficam acima dela e continuam clicáveis. */}
       <button type="button" aria-label={t.proxima} onClick={() => dispatch({ tipo: 'cena-proxima' })}
         className="fixed inset-0 z-30 cursor-pointer" />
       <Spotlight seletor={cena.destaque} chave={cena.n} />
+    </>
+  )
+}
 
+/**
+ * O painel da cena. Fica no FLUXO da linha de conteúdo, não sobreposto: assim a
+ * barra superior continua inteira e clicável, e a versão do playbook e o ciclo
+ * seguem visíveis o tempo todo, como em qualquer outra tela.
+ */
+function NarrativePanel({ estado, dispatch }) {
+  const t = T.narrativa
+  const { ativa, cena: numero, automatico, pausado, encerrada } = estado.narrativa
+  const cena = useMemo(() => cenaPorNumero(numero), [numero])
+  if (!ativa || encerrada) return null
+  return (
+    <>
       <aside aria-label={t.tituloDoModo}
-        className="k-ink fixed bottom-0 right-0 top-0 z-40 flex w-[26rem] max-w-[92vw] flex-col border-l k-bd-strong k-bg">
+        className="k-ink relative z-40 flex w-[26rem] max-w-[92vw] shrink-0 flex-col border-l k-bd-strong k-bg">
         <header className="border-b k-bd px-4 py-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="text-[10px] k-caps k-text-subtle">
-              {t.cena} <span className="tnum k-text">{numeroBr(cena.n)}</span> {t.de}{' '}
-              <span className="tnum">{numeroBr(TOTAL_DE_CENAS)}</span>
-            </p>
-            <Botao icone={Compass} onClick={() => dispatch({ tipo: 'narrativa-explorar' })}>{t.explorar}</Botao>
-          </div>
+          <p className="text-[10px] k-caps k-text-subtle">
+            {t.cena} <span className="tnum k-text">{numeroBr(cena.n)}</span> {t.de}{' '}
+            <span className="tnum">{numeroBr(TOTAL_DE_CENAS)}</span>
+          </p>
           <div className="mt-2"><ProgressoDaNarrativa cena={cena.n} dispatch={dispatch} /></div>
         </header>
 
@@ -8653,9 +8660,20 @@ function TopBar({ estado, dispatch }) {
       </div>
       <div className="ml-auto flex items-center gap-2">
         <DemoBadge />
-        <Botao icone={Play} onClick={() => dispatch({ tipo: 'alternar-apresentacao' })}>
-          {estado.apresentacao.ativa ? T.apresentacao.sair : T.apresentacao.iniciar}
-        </Botao>
+        {/* Um botão só. Ou você assiste à apresentação, ou clica você mesmo — e o
+            rótulo diz qual das duas coisas o clique faz. O roteiro do
+            apresentador, que é outra coisa, continua na tecla P. */}
+        {estado.narrativa.ativa ? (
+          <Botao icone={Compass} titulo={T.narrativa.dicaSair}
+            onClick={() => dispatch({ tipo: 'narrativa-explorar' })}>
+            {T.narrativa.explorar}
+          </Botao>
+        ) : (
+          <Botao variante="fill" icone={Play} titulo={T.narrativa.dicaEntrar}
+            onClick={() => dispatch({ tipo: 'narrativa-retomar' })}>
+            {T.narrativa.verApresentacao}
+          </Botao>
+        )}
       </div>
     </header>
   )
@@ -8760,12 +8778,14 @@ export default function KeplerGalaxy() {
   return (
     <div className="k-root k-ink h-full min-h-screen flex flex-col">
       <style>{CSS}</style>
-      <TopBar estado={estado} dispatch={dispatch} />
+      {/* Acima do escurecimento da narrativa: a versão do playbook e o ciclo ficam
+          sempre visíveis, e o botão de entrar e sair continua clicável. */}
+      <div className="relative z-50">
+        <TopBar estado={estado} dispatch={dispatch} />
+      </div>
       <div className="flex flex-1 min-h-0">
         <SideNav estado={estado} ir={ir} />
-        {/* Enquanto a narrativa conduz, o conteúdo recua a largura do painel: o
-            elemento destacado tem que caber inteiro no que sobra da tela. */}
-        <main className={`flex-1 min-w-0 overflow-y-auto p-4 ${estado.narrativa.ativa ? 'pr-[27rem]' : ''}`}>
+        <main className="flex-1 min-w-0 overflow-y-auto p-4">
           {cabecalho ? (
             <header className="mb-4">
               <h1 className="text-[17px] k-text font-semibold">{cabecalho.titulo}</h1>
@@ -8775,6 +8795,7 @@ export default function KeplerGalaxy() {
           {diff ? <div className="mb-4"><PropagationTrail diff={diff} ir={ir} /></div> : null}
           {conteudo}
         </main>
+        <NarrativePanel estado={estado} dispatch={dispatch} />
       </div>
       {estado.apresentacao.ativa ? <PresenterBar estado={estado} dispatch={dispatch} /> : null}
       {estado.apresentacao.ativa && estado.apresentacao.notas

@@ -132,14 +132,10 @@ export function NarrativeOverlay() {
   const numero = useNarrative((s) => s.cena)
   const automatico = useNarrative((s) => s.automatico)
   const pausado = useNarrative((s) => s.pausado)
-  const irPara = useNarrative((s) => s.irPara)
   const proxima = useNarrative((s) => s.proxima)
   const anterior = useNarrative((s) => s.anterior)
   const reiniciar = useNarrative((s) => s.reiniciar)
   const explorar = useNarrative((s) => s.explorar)
-  const retomar = useNarrative((s) => s.retomar)
-  const alternarAutomatico = useNarrative((s) => s.alternarAutomatico)
-  const alternarPausa = useNarrative((s) => s.alternarPausa)
 
   const cena = useMemo(() => cenaPorNumero(numero), [numero])
 
@@ -178,16 +174,9 @@ export function NarrativeOverlay() {
     return () => window.removeEventListener('keydown', aoTeclar)
   }, [ativa, proxima, anterior])
 
-  if (!ativa) {
-    return (
-      <div className="fixed bottom-3 left-1/2 z-40 -translate-x-1/2">
-        <Button variant="primary" onClick={retomar} title={t.retomarNota}>
-          <Play size={ICON} aria-hidden="true" />
-          {t.retomar}
-        </Button>
-      </div>
-    )
-  }
+  // Fora da narrativa não há pino flutuante: quem entra e sai é o botão único da
+  // barra superior, sempre no mesmo lugar.
+  if (!ativa) return null
 
   if (encerrada) {
     return (
@@ -221,22 +210,42 @@ export function NarrativeOverlay() {
         className="fixed inset-0 z-30 cursor-pointer"
       />
       <Spotlight seletor={cena.destaque} chave={cena.n} />
+    </>
+  )
+}
 
+/**
+ * O painel da cena. Fica no FLUXO da linha de conteúdo, não sobreposto: assim a
+ * barra superior continua inteira e clicável, e a versão do playbook e o ciclo
+ * seguem visíveis o tempo todo, como em qualquer outra tela.
+ */
+export function NarrativePanel() {
+  const t = strings.narrativa
+  const ativa = useNarrative((s) => s.ativa)
+  const encerrada = useNarrative((s) => s.encerrada)
+  const numero = useNarrative((s) => s.cena)
+  const automatico = useNarrative((s) => s.automatico)
+  const pausado = useNarrative((s) => s.pausado)
+  const irPara = useNarrative((s) => s.irPara)
+  const proxima = useNarrative((s) => s.proxima)
+  const anterior = useNarrative((s) => s.anterior)
+  const alternarAutomatico = useNarrative((s) => s.alternarAutomatico)
+  const alternarPausa = useNarrative((s) => s.alternarPausa)
+  const cena = useMemo(() => cenaPorNumero(numero), [numero])
+
+  if (!ativa || encerrada) return null
+
+  return (
+    <>
       <aside
         aria-label={t.tituloDoModo}
-        className="surface-ink fixed bottom-0 right-0 top-0 z-40 flex w-[26rem] max-w-[92vw] flex-col border-l border-line-strong bg-surface"
+        className="surface-ink relative z-40 flex w-[26rem] max-w-[92vw] shrink-0 flex-col border-l border-line-strong bg-surface"
       >
         <header className="border-b border-line px-4 py-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className="text-2xs uppercase tracking-wider text-fg-subtle">
-              {t.cena} <span className="tnum text-fg">{cena.n}</span> {t.de}{' '}
-              <span className="tnum">{TOTAL_DE_CENAS}</span>
-            </p>
-            <Button variant="ghost" onClick={explorar} className="-mr-2">
-              <Compass size={ICON} aria-hidden="true" />
-              {t.explorar}
-            </Button>
-          </div>
+          <p className="text-2xs uppercase tracking-wider text-fg-subtle">
+            {t.cena} <span className="tnum text-fg">{cena.n}</span> {t.de}{' '}
+            <span className="tnum">{TOTAL_DE_CENAS}</span>
+          </p>
           <div className="mt-2">
             <Progresso cena={cena.n} irPara={irPara} />
           </div>
