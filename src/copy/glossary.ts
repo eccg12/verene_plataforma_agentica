@@ -34,12 +34,19 @@ export const CONTRACT_ARTIFACTS = [
 ] as const
 
 /**
- * Nomes dos agentes do KEPLER. Nunca são traduzidos.
- *
- * A lista é preenchida conforme cada agente é definido — não invente nomes de
- * agente aqui nem em tela (ver regra 5 do CLAUDE.md).
+ * Nomes dos agentes do KEPLER. Nunca são traduzidos, nem flexionados, nem
+ * escritos em caixa mista. A especificação de cada um está em
+ * `src/data/agents.ts`.
  */
-export const AGENT_NAMES: readonly string[] = []
+export const AGENT_NAMES: readonly string[] = [
+  'VEGA',
+  'LYRA',
+  'ATLAS',
+  'NOVA',
+  'ORION',
+  'SIRIUS',
+  'KANON',
+]
 
 /** Todos os termos que a UI mantém em inglês. */
 export const PRESERVED_TERMS: readonly string[] = [

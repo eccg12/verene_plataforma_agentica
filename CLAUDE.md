@@ -116,6 +116,40 @@ frente do cliente custam mais caro que a demo inteira.
 Dados inventados nunca levam nome de empresa real: CNPJ fictício em razão social real
 afirmaria como verdadeiro um cadastro que não existe.
 
+## Núcleo conceitual
+
+A tese: **a regra vive num lugar só, versionada, e os agentes a executam — não a interpretam.**
+O motor torna isso literal, não retórico.
+
+- `src/data/playbook.ts` — o GALAXY data playbook como estrutura de dados. Cada regra tem id,
+  agente, objeto, campo, tipo, expressão legível, rationale, dono, versão e status. `nature`
+  separa regra **determinística** (vira código, executa) de **generativa** (proposta de regra
+  candidata, não executa até um humano promover).
+- `src/engine/kanon.ts` — KANON não ocupa passo. Sela a versão do playbook com checksum, gera a
+  documentação a partir das regras, e é **o único caminho** por onde um agente chega a uma regra.
+  `resolveRule` recusa regra fora da versão, regra candidata e regra de outro agente.
+- `src/engine/pipeline.ts` — a esteira de nove passos. **Nenhum passo escreve em registro
+  diretamente:** toda mutação passa por `apply`, que resolve a regra em KANON antes de aplicar e
+  registra id da regra e versão do playbook na trilha. Não existe caminho alternativo — é por
+  construção, não por disciplina.
+- `src/data/defect-taxonomy.ts` — defeito por origem, com dono contratual. `monodaResponsavel` é
+  `true` só em `transformation`: nas outras três origens a Monoda detecta, evidencia e roteia,
+  mas não responde pelo defeito.
+
+**Quatro checkpoints humanos bloqueantes.** Após o passo 3 (mapeamento), o 5 (cada cluster de
+duplicata, um a um), o 7 (cada exceção decidida) e os 8 e 9 (pacote e reconciliação, pelo data
+owner). Sem assinatura o passo seguinte nem roda — sai como `blocked`/`not-reached`.
+
+**Determinismo.** O estado final de um registro é *derivado* das assinaturas, nunca acumulado por
+mutação ao longo dos passos: acumular dava ordem-dependência. Não há `Math.random` nem `Date.now`
+no motor; o instante vem do epoch fixo de `clock.ts`. Entrada e saída são ordenadas de forma
+total, então a ordem dos registros de entrada não afeta a saída. Mesma entrada + mesma versão de
+playbook = saída idêntica byte a byte, e há teste comparando `JSON.stringify` de duas execuções.
+
+**Estado da simulação** em `src/engine/store.ts` (Zustand, em memória, com `reset()`). Guarda só o
+que um humano decidiu — recorte e assinaturas. O resultado da esteira não é estado: é derivado a
+cada mudança, porque derivar de algo determinístico não pode divergir do que as regras produziriam.
+
 ## Comandos
 
 ```bash
