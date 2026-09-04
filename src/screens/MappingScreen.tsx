@@ -204,7 +204,7 @@ export function MappingScreen() {
 
         <PainelDivergencias objeto={objeto} />
 
-        <section>
+        <section data-cena="dicionario">
           <div className="overflow-x-auto border border-line">
             <table className="w-full text-base">
               <thead className="bg-surface-sunken">

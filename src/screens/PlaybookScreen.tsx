@@ -122,7 +122,7 @@ function BlocoDeCorrecao({ regra }: { readonly regra: PlaybookRule }) {
   ].filter((k) => String(regra.parametros?.[k]) !== String(proxima.regra.parametros?.[k]))
 
   return (
-    <section className="mt-3 border border-accent bg-surface-sunken">
+    <section data-cena="correcao" className="mt-3 border border-accent bg-surface-sunken">
       <header className="border-b border-line px-2.5 py-1.5">
         <h3 className="flex items-center gap-1.5 text-sm font-medium text-accent">
           <Wrench size={ICON} aria-hidden="true" />
@@ -384,7 +384,7 @@ export function PlaybookScreen() {
   return (
     <Surface surface="paper" className="min-h-full">
       <div className="flex flex-col gap-4 px-5 py-4">
-        <header>
+        <header data-cena="selo">
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
             <h1 className="text-xl font-medium tracking-tight text-fg">{t.title}</h1>
             <span className="flex items-baseline gap-1.5">

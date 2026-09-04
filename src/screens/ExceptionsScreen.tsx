@@ -226,7 +226,7 @@ export function ExceptionsScreen() {
           </div>
         )}
 
-        <section>
+        <section data-cena="enriquecimento">
           <h2 className="text-md font-medium text-fg">{t.enriquecimento.titulo}</h2>
           <p className="mt-1 max-w-[80ch] text-sm text-fg-subtle">{t.enriquecimento.nota}</p>
           <ul className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">

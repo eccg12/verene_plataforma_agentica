@@ -267,7 +267,7 @@ export function DuplicatesScreen() {
         ) : run.clusters.length === 0 ? (
           <p className="border border-line bg-surface-raised px-3 py-3 text-sm text-fg-subtle">{t.semClusters}</p>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div data-cena="clusters" className="flex flex-col gap-3">
             {run.clusters.map((c) => (
               <CardCluster key={c.id} cluster={c} />
             ))}

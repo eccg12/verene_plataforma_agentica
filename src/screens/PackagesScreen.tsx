@@ -283,7 +283,7 @@ export function PackagesScreen() {
           </section>
 
           {/* ---------- manifest ---------- */}
-          <section className="border border-accent bg-surface-raised">
+          <section data-cena="manifest" className="border border-accent bg-surface-raised">
             <div className="border-b border-line px-3 py-2">
               <h3 className="text-base font-medium text-fg">{t.manifest.titulo}</h3>
             </div>

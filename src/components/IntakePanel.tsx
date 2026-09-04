@@ -13,7 +13,7 @@ const t = strings.missionControl.intake
  */
 export function IntakePanel() {
   return (
-    <section>
+    <section data-cena="recebimento">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <h2 className="text-md font-medium text-fg">{t.title}</h2>
         <span className="tnum text-xs text-fg-subtle">

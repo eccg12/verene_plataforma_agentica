@@ -198,7 +198,7 @@ function CasoLinhaContrato({ resultado }: { readonly resultado: ContractLineResu
           <Timeline trail={trail} bloqueados={new Set()} />
         </div>
       </section>
-      <section>
+      <section data-cena="trilha">
         <div className="flex items-baseline gap-3">
           <h2 className="text-md font-medium text-fg">{t.trilha}</h2>
           <span className="tnum text-xs text-fg-subtle">
@@ -326,7 +326,7 @@ export function RecordScreen() {
               </div>
             </section>
 
-            <section>
+            <section data-cena="trilha">
               <div className="flex items-baseline gap-3">
                 <h2 className="text-md font-medium text-fg">{t.trilha}</h2>
                 <span className="tnum text-xs text-fg-subtle">

@@ -6,6 +6,8 @@ import { useAtalhosDeApresentacao } from '@/app/shortcuts'
 import { PresenterBar } from '@/components/PresenterBar'
 import { PresenterNotes } from '@/components/PresenterNotes'
 import { SideNav } from '@/components/SideNav'
+import { NarrativeOverlay } from '@/narrative/NarrativeOverlay'
+import { useNarrative } from '@/narrative/store'
 import { Surface } from '@/components/Surface'
 import { TopBar } from '@/components/TopBar'
 import { useSimulation } from '@/engine/store'
@@ -19,6 +21,7 @@ export function AppShell() {
   const ciclo = useSimulation((s) => s.ciclo)
   const ligarFlags = useSimulation((s) => s.ligarFlags)
   const apresentando = useSimulation((s) => s.apresentacao.ativa)
+  const narrando = useNarrative((s) => s.ativa)
   const { search } = useLocation()
 
   useAtalhosDeApresentacao()
@@ -34,12 +37,17 @@ export function AppShell() {
       <TopBar playbookVersion={playbookVersion} ciclo={ciclo} />
       <div className="relative flex min-h-0 flex-1">
         <SideNav />
-        <main className="min-w-0 flex-1 overflow-y-auto">
+        {/* Enquanto a narrativa conduz, o conteúdo recua a largura do painel: o
+            elemento destacado tem que caber inteiro no que sobra da tela. */}
+        <main className={`min-w-0 flex-1 overflow-y-auto ${narrando ? 'pr-[26rem]' : ''}`}>
           <Outlet />
         </main>
         <PresenterNotes />
       </div>
       {apresentando ? <PresenterBar /> : null}
+      {/* A camada narrada fica por cima de tudo — inclusive do modo de
+          apresentação, que conduz quem apresenta, não quem assiste. */}
+      <NarrativeOverlay />
     </Surface>
   )
 }

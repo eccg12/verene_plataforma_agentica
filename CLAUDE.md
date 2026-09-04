@@ -353,6 +353,44 @@ o passo, que é o que permite remostrar depois de uma pergunta. Há teste para o
 **O selo de ambiente de demonstração é permanente**, em toda tela, sem tecla para esconder. Um
 protótipo bem feito parece um sistema — e é por parecer que ele precisa dizer que não é.
 
+## Camada narrada
+
+O modo de apresentação conduz **quem apresenta**. A camada narrada (`src/narrative/`) conduz
+**quem assiste**: numa apresentação o espectador não sabe o que procurar e se perde, e um mockup
+que funciona como produto não se explica sozinho.
+
+São **quinze cenas em cinco atos** — o problema, os sete agentes, a esteira, os dois momentos e o
+aceite —, declaradas em `src/narrative/script.ts`. Cada cena tem título, dois a três bullets em
+linguagem de quem não conhece migração de SAP, a rota da tela de fundo, o seletor do elemento a
+destacar e uma nota de apresentador. A regra de escrita dos bullets é dura: frase curta, nada de
+jargão sem explicação junto, nada de palavra inventada.
+
+**A narrativa é o estado inicial.** Ao abrir, ela está ligada. "Explorar livremente" sai a
+qualquer momento e "Retomar apresentação" volta na cena onde parou.
+
+- A tela real fica ao fundo, funcionando, escurecida, com o elemento da cena em foco. O
+  escurecimento é a sombra do próprio buraco do foco — uma sombra enorme para fora —, então não
+  existe o instante em que a máscara e o brilho discordam.
+- Os bullets aparecem **um a um**, em cascata. `prefers-reduced-motion` mostra todos de uma vez.
+- Avança por clique na área escurecida, seta ou barra de espaço. O modo automático anda sozinho
+  pelo tempo de leitura declarado na cena, com pausa e retomada.
+- **As sete cenas de agente trazem o cartão do agente** — o que faz, o que recebe, o que entrega e
+  quem responde por ele. Era o ponto mais fraco do protótipo: os agentes só apareciam como rótulo
+  em tabela e nunca eram apresentados. O revisor sai de `src/data/agents.ts`, não do roteiro, para
+  não haver duas verdades sobre quem assina.
+
+**A camada não reconstrói nada.** Não altera tela, motor, fixture nem dado: navega pelas rotas que
+já existem e lê o roteiro. Os dois únicos pontos de contato com o que já havia são:
+
+1. **Um atributo `data-cena` por âncora**, em nove telas — catorze atributos, nenhuma mudança de
+   layout, de classe ou de comportamento. Sem âncora estável, o holofote passaria a iluminar a
+   coisa errada a cada mudança de layout, em silêncio e na frente do cliente.
+2. **`src/narrative/prepare.ts`**, que leva a onda ao estado que a cena precisa encontrar — pela
+   API pública da store, o mesmo caminho dos botões das telas. A cena 11 afirma que um registro
+   atravessou os nove passos; com a esteira parada no passo 3 a trilha está pela metade e a cena
+   mente. As exceções do corte no meio da palavra saem **rejeitadas**, não aprovadas: é corrigindo
+   a regra que elas somem, e esse é o argumento da cena 13.
+
 ## Passe de qualidade
 
 O que a suíte trava, para não voltar:

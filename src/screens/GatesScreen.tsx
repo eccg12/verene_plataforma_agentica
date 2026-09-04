@@ -57,7 +57,7 @@ function Rail({
   readonly onSelect: (id: GateId) => void
 }) {
   return (
-    <div aria-label={t.railLabel} className="flex gap-1 overflow-x-auto pb-1">
+    <div data-cena="gates-rail" aria-label={t.railLabel} className="flex gap-1 overflow-x-auto pb-1">
       {estados.map((e) => (
         <button
           key={e.gate.id}

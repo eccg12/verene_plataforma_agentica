@@ -856,6 +856,38 @@ export const strings = {
     },
     dica: 'Pressione P para conduzir a demonstração por um roteiro.',
   },
+  /**
+   * A camada narrada. Conduz quem ASSISTE, sem alguém falando por cima — é a
+   * diferença para `apresentacao`, que conduz quem apresenta.
+   */
+  narrativa: {
+    tituloDoModo: 'Apresentação guiada',
+    cena: 'Cena',
+    de: 'de',
+    proxima: 'Próxima cena',
+    anterior: 'Cena anterior',
+    reiniciar: 'Voltar ao início',
+    explorar: 'Explorar livremente',
+    retomar: 'Retomar apresentação',
+    retomarNota: 'Volta na cena onde você parou.',
+    tocar: 'Reproduzir sozinho',
+    pausar: 'Pausar',
+    automatico: 'Modo automático',
+    notas: 'Nota do apresentador',
+    avancarDica: 'Clique, seta ou barra de espaço para avançar',
+    encerrar: 'Terminar e explorar',
+    fim: 'Fim da apresentação',
+    fimNota:
+      'Você viu o problema, os sete agentes, a esteira, os dois momentos e como o aceite é medido. A partir daqui a ferramenta é sua.',
+    agente: {
+      especialidade: 'Especialidade',
+      oQueFaz: 'O que faz',
+      recebe: 'Recebe',
+      entrega: 'Entrega',
+      assina: 'Quem responde por ele',
+    },
+    telaAoFundo: 'A tela ao fundo é real e está funcionando.',
+  },
 } as const
 
 export type Strings = typeof strings

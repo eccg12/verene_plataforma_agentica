@@ -36,7 +36,7 @@ export function PackageGrid({ cicloCorrente }: PackageGridProps) {
     .reduce((acc, p) => acc + p.registros, 0)
 
   return (
-    <section>
+    <section data-cena="grade-pacotes">
       <div className="flex items-baseline gap-3">
         <h2 className="text-md font-medium text-fg">{t.title}</h2>
         <span className="tnum text-xs text-fg-subtle">

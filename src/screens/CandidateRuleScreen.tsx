@@ -290,7 +290,7 @@ export function CandidateRuleScreen() {
 
       <Limite />
 
-      <section>
+      <section data-cena="evidencia-candidata">
         <h2 className="text-md font-medium text-fg">{t.evidencia.titulo}</h2>
         <p className="mt-1 max-w-[80ch] text-sm text-fg-subtle">{t.evidencia.nota}</p>
         <div className="mt-2 grid gap-3 xl:grid-cols-2">

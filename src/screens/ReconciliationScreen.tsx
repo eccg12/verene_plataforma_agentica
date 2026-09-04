@@ -184,7 +184,7 @@ export function ReconciliationScreen() {
         </header>
 
         {/* ---------- placar ---------- */}
-        <section>
+        <section data-cena="placar">
           <h2 className="text-md font-medium text-fg">{t.placar.titulo}</h2>
           <p className="mt-1 max-w-[80ch] text-sm text-fg-subtle">{t.placar.nota}</p>
           <div className="mt-2 grid gap-2 lg:grid-cols-2 xl:grid-cols-4">
@@ -225,7 +225,7 @@ export function ReconciliationScreen() {
         </section>
 
         {/* ---------- registro de defeitos ---------- */}
-        <section>
+        <section data-cena="defeitos-por-origem">
           <h2 className="text-md font-medium text-fg">{t.registro.titulo}</h2>
           <p className="mt-1 max-w-[80ch] text-sm text-fg-subtle">{t.registro.nota}</p>
 
@@ -324,7 +324,7 @@ export function ReconciliationScreen() {
         </section>
 
         {/* ---------- contagem ---------- */}
-        <section>
+        <section data-cena="contagem">
           <h2 className="text-md font-medium text-fg">{t.porContagem}</h2>
           <div className="mt-2">
             <TabelaContagem linhas={contagemPorSpe(run)} total={contagemTotal(run)} />
