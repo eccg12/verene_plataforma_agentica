@@ -77,8 +77,16 @@ export const semanticGroups: readonly { readonly key: string; readonly tokens: r
 /** Amostras das quatro origens de defeito. */
 export const defectSwatches: readonly SwatchSpec[] = defectTokens.map((name) => ({ name, grade: true }))
 
-/** Objetos SAP de exemplo para a tabela densa do styleguide. Dados ilustrativos. */
-export interface MigrationRow {
+/**
+ * Linhas da tabela densa do styleguide.
+ *
+ * Usa os objetos e volumes declarados em `scope.ts` — não números inventados —
+ * para o guia de estilo não contradizer o escopo em nenhuma tela. As colunas de
+ * migrados e defeitos são ilustrativas do componente, não resultado de execução.
+ */
+import { scopeObjects } from '@/data/scope'
+
+export interface StyleguideRow {
   readonly id: string
   readonly object: string
   readonly records: number
@@ -88,10 +96,28 @@ export interface MigrationRow {
   readonly state: StateToken
 }
 
-export const styleguideRows: readonly MigrationRow[] = [
-  { id: 'bp', object: 'Business Partner', records: 184320, migrated: 181044, defects: 3276, origin: 'defect-source', state: 'signed' },
-  { id: 'oa', object: 'Outline agreement', records: 22890, migrated: 21106, defects: 1784, origin: 'defect-transformation', state: 'exception' },
-  { id: 'mm', object: 'Material Master', records: 96504, migrated: 96108, defects: 396, origin: 'defect-target-config', state: 'held' },
-  { id: 'ca', object: 'Cost Center', records: 4118, migrated: 4118, defects: 0, origin: 'defect-load', state: 'signed' },
-  { id: 'gl', object: 'G/L Account', records: 12640, migrated: 11982, defects: 658, origin: 'defect-load', state: 'pending-gate' },
-] as const
+const ILUSTRACAO: readonly {
+  readonly migrated: number
+  readonly defects: number
+  readonly origin: DefectToken
+  readonly state: StateToken
+}[] = [
+  { migrated: 1094, defects: 26, origin: 'defect-source', state: 'signed' },
+  { migrated: 311, defects: 9, origin: 'defect-transformation', state: 'exception' },
+  { migrated: 182, defects: 18, origin: 'defect-target-config', state: 'held' },
+  { migrated: 200, defects: 0, origin: 'defect-load', state: 'signed' },
+  { migrated: 113, defects: 7, origin: 'defect-load', state: 'pending-gate' },
+]
+
+export const styleguideRows: readonly StyleguideRow[] = scopeObjects.slice(0, 5).map((objeto, index) => {
+  const ilustracao = ILUSTRACAO[index] ?? ILUSTRACAO[0]!
+  return {
+    id: objeto.id,
+    object: objeto.nome,
+    records: objeto.volume,
+    migrated: ilustracao.migrated,
+    defects: ilustracao.defects,
+    origin: ilustracao.origin,
+    state: ilustracao.state,
+  }
+})

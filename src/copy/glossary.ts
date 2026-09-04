@@ -14,6 +14,12 @@ export const SAP_TERMS = [
   'Business Partner',
   'Outline agreement',
   'Migration Cockpit',
+  'Product master',
+  'Service master',
+  'Purchase order',
+  'Purchase requisition',
+  'Incoterms',
+  'tenant',
   'Fiori',
   'XML',
 ] as const

@@ -91,6 +91,31 @@ só ele emite as custom properties que as superfícies redefinem. `tailwind.conf
 espelho tipado da paleta para consumo por TypeScript, e `npm run check:tokens` falha se os
 dois divergirem. Os slots de logo ficam em `src/assets/logos/` (ver README de lá).
 
+## Fixtures
+
+`src/data/` é a única fonte de dado da UI, dividida em:
+
+- `source/` — extrato do Nasajon, o ERP legado das quatro SPEs. **Sujo de propósito.**
+  Os defeitos são plantados e etiquetados em `_plantedDefect`, com o campo afetado, a nota
+  que a tela deve mostrar e a origem na escala de cor do design system. Nenhuma tela precisa
+  redescobrir defeito por heurística.
+- `target/` — o tenant S/4HANA vivo da Verene (`tenant-config.ts`) e os fornecedores já
+  cadastrados nele (`existing-base.ts`). As divergências do padrão SAP estão em
+  `divergenciasDoPadraoSap` e são o argumento da tela do LYRA.
+- `scope.ts` — o escopo declarado. Os 48 pacotes de carga são **derivados** de
+  6 objetos × 4 SPEs × 2 ciclos, não digitados.
+
+**Ao mexer em fixture, rode `npm test`.** A suíte confere o que a demo afirma: recalcula o
+dígito verificador de todo CNPJ e CPF, exige que só os 3 CNPJ plantados sejam inválidos,
+verifica que os 4 pares de duplicata têm mesmo CNPJ em SPEs diferentes com grafia diferente,
+confere que os 2 fornecedores "já existentes" apontam para um Business Partner que existe de
+fato com o mesmo CNPJ, checa que todo código IBGE bate com a UF, que quantidade × preço fecha
+em toda linha de contrato, e que o escopo soma 2.080 em 48 pacotes. Números que não fecham na
+frente do cliente custam mais caro que a demo inteira.
+
+Dados inventados nunca levam nome de empresa real: CNPJ fictício em razão social real
+afirmaria como verdadeiro um cadastro que não existe.
+
 ## Comandos
 
 ```bash
@@ -100,6 +125,7 @@ npm run preview    # serve o build
 npm run typecheck  # tsc -b
 npm run lint       # eslint
 npm run check:tokens  # paleta de tailwind.config.ts x @theme de globals.css
+npm test           # integridade das fixtures (vitest)
 ```
 
 ## Verificações automáticas
