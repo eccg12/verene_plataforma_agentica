@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { flagsNaBusca, PARAM_FLAG } from '@/app/flags'
 import { artefatoIds, gateIds, gates, type GateId } from '@/data/gates'
 import { parcelasPorGate, PERCENTUAL_TOTAL } from '@/data/payment'
-import { PLAYBOOK_VERSION } from '@/data/playbook'
+import { PLAYBOOK_VERSION, PROXIMA_VERSAO } from '@/data/playbook'
 import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
 import { estadoDosGates, type EntradaDeGates, type EstadoDeGate } from '@/engine/gates'
 import { liberacaoDePagamento } from '@/engine/payment'
@@ -146,6 +146,21 @@ describe('trilha de assinatura', () => {
       expect(item.assinatura!.at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
       expect(item.assinatura!.playbookVersion).toBe(PLAYBOOK_VERSION)
     }
+  })
+
+  it('a linha de base atravessa a correção de uma regra que não a toca', () => {
+    // O artefato do G0 é escopo, recibo e playbook selado. Corrigir uma regra de
+    // ATLAS não muda nenhum dos três — se a assinatura caísse aqui, toda correção
+    // derrubaria a cascata inteira dos oito Gates.
+    const lista = estados(emptyApprovals, {}, PROXIMA_VERSAO)
+    const g0 = de(lista, 'G0')
+    expect(g0.status).toBe('aprovado')
+    for (const item of g0.trilha) {
+      expect(item.assinatura?.playbookVersion).toBe(PLAYBOOK_VERSION)
+      expect(item.assinatura?.revalidadaEm).toBe(PROXIMA_VERSAO)
+    }
+    // e o G1 continua sendo o próximo a abrir, não um Gate recusado
+    expect(de(lista, 'G1').entradaAdmitida).toBe(true)
   })
 
   it('assinatura dada sobre outra versão do playbook não vale para a corrente', () => {

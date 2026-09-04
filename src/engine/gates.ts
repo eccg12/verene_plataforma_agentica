@@ -24,6 +24,8 @@ import {
   type GateId,
 } from '@/data/gates'
 import { ownerDaArea, type Owner } from '@/data/owners'
+import { ordemDaVersao } from '@/data/playbook-history'
+import { regrasAlteradasEntre } from '@/engine/regeneration'
 import type { Approvals, PipelineRun, Signature } from '@/engine/pipeline'
 
 export type GateStatus = 'aprovado' | 'em-avaliacao' | 'evidencia-pendente' | 'entrada-recusada'
@@ -92,6 +94,33 @@ function vale(assinatura: Signature | null | undefined, versao: string): boolean
   return assinatura.playbookVersion === versao || assinatura.revalidadaEm === versao
 }
 
+/**
+ * A assinatura de baseline atravessa uma correção de regra?
+ *
+ * O artefato do G0 é escopo, recibo do extrato e playbook selado. Corrigir uma
+ * regra de transformação não muda nenhum dos três — então a assinatura continua
+ * cobrindo o que cobria, e isso fica registrado como revalidação em vez de a
+ * cascata inteira desabar a cada correção. O que a derrubaria é mudança numa
+ * regra que toque a evidência DELE, e é isso que a conta abaixo verifica.
+ */
+function baselineNaVersao(assinatura: Signature, versao: string): Signature {
+  if (assinatura.playbookVersion === versao) return assinatura
+  const daAssinatura = ordemDaVersao(assinatura.playbookVersion)
+  const corrente = ordemDaVersao(versao)
+  if (daAssinatura < 0 || corrente < 0 || daAssinatura > corrente) return assinatura
+
+  const passosDoBaseline = new Set(
+    gates
+      .find((g) => g.exigeArtefato === null)!
+      .evidencias.map((e) => e.produzidaPor)
+      .filter((p): p is NonNullable<typeof p> => p !== null),
+  )
+  const tocada = regrasAlteradasEntre(assinatura.playbookVersion, versao).some((r) =>
+    r.passos.some((passo) => passosDoBaseline.has(passo)),
+  )
+  return tocada ? assinatura : { ...assinatura, revalidadaEm: versao }
+}
+
 function comResponsavel(assinante: Assinante, assinatura: Signature | null): ItemDeTrilha {
   return {
     oQueAssina: assinante.oQueAssina,
@@ -133,7 +162,10 @@ function trilhaDoGate(gate: Gate, entrada: EntradaDeGates): readonly ItemDeTrilh
 
   switch (gate.id) {
     case 'G0':
-      return gate.assinantes.map((a, i) => comResponsavel(a, assinaturaDeBaseline[i] ?? null))
+      return gate.assinantes.map((a, i) => {
+        const baseline = assinaturaDeBaseline[i]
+        return comResponsavel(a, baseline ? baselineNaVersao(baseline, versao) : null)
+      })
     case 'G1':
       return [
         comResponsavel(primeiro!, approvals.mapeamentoSme),

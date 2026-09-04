@@ -8,14 +8,13 @@ import { strings } from '@/copy/strings'
 import { nasajonContracts } from '@/data/source/nasajon-contracts'
 import { runContractLine, type ContractLineResult } from '@/engine/contract-pipeline'
 import { pipelineSteps, type ExceptionRecord, type StepId, type TrailEntry } from '@/engine/pipeline'
+import { CASO_FORNECEDOR, CASO_LINHA_CONTRATO } from '@/data/record-cases'
 import { useSimulation } from '@/engine/store'
 
 const ICON = 13
 const t = strings.record
 
-/** Os dois casos navegáveis. Fornecedor é o objeto fácil; linha de contrato, o difícil. */
-export const CASO_FORNECEDOR = 'F1001'
-export const CASO_LINHA_CONTRATO = 'CTR-2023-404~10'
+export { CASO_FORNECEDOR, CASO_LINHA_CONTRATO } from '@/data/record-cases'
 
 const instante = (iso: string): string => iso.slice(11, 19)
 

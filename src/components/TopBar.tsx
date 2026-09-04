@@ -1,4 +1,5 @@
 import { BrandLogo } from '@/components/BrandLogo'
+import { DemoBadge } from '@/components/DemoBadge'
 import { strings } from '@/copy/strings'
 import { cycleById, type Cycle } from '@/data/scope'
 
@@ -18,6 +19,8 @@ export function TopBar({ playbookVersion, ciclo }: TopBarProps) {
       <BrandLogo brand="verene" className="h-6" />
 
       <span className="text-md font-medium tracking-tight text-fg">{t.projectTitle}</span>
+
+      <DemoBadge />
 
       <div className="ml-auto flex items-center gap-4">
         <span className="flex items-baseline gap-1.5 rounded-sm border border-line-strong px-2 py-0.5">

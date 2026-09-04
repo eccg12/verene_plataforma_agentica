@@ -16,9 +16,16 @@ import { create } from 'zustand'
 
 import { flagsDesligadas, type FlagId } from '@/app/flags'
 import type { GateId } from '@/data/gates'
-import { mapeamentoSobrevive, regrasAlteradasEntre } from '@/engine/regeneration'
+import {
+  DEFEITO_QUE_SE_CORRIGE_NA_REGRA,
+  NIVEIS,
+  passoPorNumero,
+  TOTAL_DE_PASSOS,
+  type NivelDeEstado,
+} from '@/data/presentation'
+import { carregarAssinaturas } from '@/engine/regeneration'
 import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
-import { PLAYBOOK_VERSION } from '@/data/playbook'
+import { PLAYBOOK_VERSION, PROXIMA_VERSAO } from '@/data/playbook'
 import type { Cycle } from '@/data/scope'
 import type { SpeId } from '@/data/types'
 import { simInstant } from '@/engine/clock'
@@ -126,6 +133,29 @@ export interface SimulationState {
   /** Flags de demonstração, ligadas por parâmetro de URL. Não persistem. */
   readonly flags: Readonly<Record<FlagId, boolean>>
   ligarFlags: (ids: readonly FlagId[]) => void
+  /**
+   * Modo de apresentação: o roteiro conduzido da primeira sala.
+   *
+   * `passo` é o passo corrente do roteiro; `notas` é o overlay do apresentador,
+   * fechado por padrão. Sobrevive a `reset()` — reiniciar a demonstração no meio
+   * da sala não pode derrubar o roteiro junto.
+   */
+  readonly apresentacao: {
+    readonly ativa: boolean
+    readonly passo: number
+    readonly notas: boolean
+  }
+  alternarApresentacao: () => void
+  sairDaApresentacao: () => void
+  alternarNotas: () => void
+  /**
+   * Leva ao passo `n` e deixa a onda no estado que ele precisa encontrar.
+   *
+   * Para a frente, garante ao MENOS o nível do passo — o que o apresentador fez
+   * ao vivo não é desfeito. Para trás, rebobina EXATAMENTE até ele, que é o que
+   * permite remostrar um passo depois de uma pergunta.
+   */
+  irParaPasso: (n: number) => void
   reset: () => void
 }
 
@@ -161,6 +191,95 @@ function sign(
   }
 }
 
+/**
+ * O estado da onda em cada nível do roteiro.
+ *
+ * Não é atalho de fachada: assina exatamente o que um humano assinaria, com os
+ * mesmos papéis e o mesmo instante determinístico. O que o roteiro poupa é o
+ * tempo de clicar, não a decisão.
+ */
+function estadoDoNivel(nivel: NivelDeEstado): {
+  playbookVersion: string
+  approvals: Approvals
+  assinaturasDeGate: Readonly<Partial<Record<GateId, Signature>>>
+} {
+  const v0 = PLAYBOOK_VERSION
+  let approvals: Approvals = emptyApprovals
+  let playbookVersion = v0
+
+  if (nivel >= NIVEIS.mapeamento) {
+    approvals = {
+      ...approvals,
+      mapeamentoSme: sign(signatories.mapeamentoSme, v0, 'approved'),
+      mapeamento: sign(signatories.mapeamento, v0, 'approved'),
+    }
+  }
+
+  if (nivel >= NIVEIS.duplicatas) {
+    const run = runDeTodasSpes(v0, approvals)
+    approvals = {
+      ...approvals,
+      clusters: Object.fromEntries(
+        run.clusters.map((c) => [c.id, sign(signatories.duplicatas, v0, 'approved')]),
+      ),
+    }
+  }
+
+  if (nivel >= NIVEIS.excecoes) {
+    const run = runDeTodasSpes(v0, approvals)
+    approvals = {
+      ...approvals,
+      excecoes: Object.fromEntries(
+        run.exceptions.map((e) => [
+          e.id,
+          // O corte no meio da palavra fica RETIDO: aprovar o registro só
+          // carimbaria o corte errado. Ele sai da fila no passo 6, corrigindo a
+          // regra — que é justamente o argumento do Momento 1.
+          sign(
+            signatories.excecoes,
+            v0,
+            e.defectTypeId === DEFEITO_QUE_SE_CORRIGE_NA_REGRA ? 'rejected' : 'approved',
+          ),
+        ]),
+      ),
+    }
+  }
+
+  if (nivel >= NIVEIS.corrigido) {
+    const depois = runDeTodasSpes(PROXIMA_VERSAO, approvals)
+    approvals = carregarAssinaturas(approvals, v0, PROXIMA_VERSAO, depois)
+    playbookVersion = PROXIMA_VERSAO
+  }
+
+  const assinaturasDeGate: Partial<Record<GateId, Signature>> = {}
+  if (nivel >= NIVEIS.carga) {
+    approvals = { ...approvals, pacote: sign(signatories.pacote, playbookVersion, 'approved') }
+    assinaturasDeGate.G5 = sign(signatories.carga, playbookVersion, 'approved')
+  }
+
+  return { playbookVersion, approvals, assinaturasDeGate }
+}
+
+/**
+ * Até onde a onda já foi, derivado do estado — não de um contador.
+ *
+ * É o que permite andar para a frente sem desfazer o que o apresentador fez ao
+ * vivo: se ele publicou a v1.4.0 no passo 6, o passo 7 encontra o nível 4 e não
+ * rebobina para o 3.
+ */
+function nivelAtual(estado: Pick<SimulationState, 'approvals' | 'playbookVersion' | 'assinaturasDeGate'>): NivelDeEstado {
+  const { approvals, playbookVersion, assinaturasDeGate } = estado
+  if (approvals.mapeamentoSme === null || approvals.mapeamento === null) return NIVEIS.nada
+  const run = runDeTodasSpes(playbookVersion, approvals)
+  if (run.clusters.length === 0 || !run.clusters.every((c) => approvals.clusters[c.id])) {
+    return NIVEIS.mapeamento
+  }
+  if (!run.exceptions.every((e) => approvals.excecoes[e.id])) return NIVEIS.duplicatas
+  if (playbookVersion !== PROXIMA_VERSAO) return NIVEIS.excecoes
+  if (approvals.pacote === null || assinaturasDeGate.G5 === undefined) return NIVEIS.corrigido
+  return NIVEIS.carga
+}
+
 function selecionar(spe: SpeFilter) {
   return spe === 'todas' ? nasajonSuppliers : nasajonSuppliers.filter((s) => s.spe === spe)
 }
@@ -168,6 +287,8 @@ function selecionar(spe: SpeFilter) {
 function derivar(spe: SpeFilter, playbookVersion: string, approvals: Approvals): PipelineRun {
   return runPipeline({ records: selecionar(spe), playbookVersion, approvals, spe })
 }
+
+const APRESENTACAO_INICIAL = { ativa: false, passo: 1, notas: false }
 
 const ESTADO_INICIAL = {
   candidatas: {} as Readonly<Record<string, RegistroDeCandidata>>,
@@ -195,6 +316,7 @@ export const useSimulation = create<SimulationState>((set, get) => {
 
   return {
     ...ESTADO_INICIAL,
+    apresentacao: APRESENTACAO_INICIAL,
     run: derivar(ESTADO_INICIAL.spe, ESTADO_INICIAL.playbookVersion, ESTADO_INICIAL.approvals),
 
     // Trocar de SPE ou de versão de playbook zera as assinaturas: assinatura
@@ -210,36 +332,7 @@ export const useSimulation = create<SimulationState>((set, get) => {
       if (versao === de) return
 
       const depois = runDeTodasSpes(versao, approvals)
-      const alteradas = regrasAlteradasEntre(de, versao)
-
-      // Assinatura carregada, não recriada: quem assinou e quando continuam os
-      // originais; o que se acrescenta é a versão em que ela foi revalidada.
-      const revalidar = (a: Signature): Signature => ({ ...a, revalidadaEm: versao })
-
-      const idsDeCluster = new Set(depois.clusters.map((c) => c.id))
-      const clusters = Object.fromEntries(
-        Object.entries(approvals.clusters)
-          .filter(([id]) => idsDeCluster.has(id))
-          .map(([id, a]) => [id, revalidar(a)]),
-      )
-
-      const idsDeExcecao = new Set(depois.exceptions.map((e) => e.id))
-      const excecoes = Object.fromEntries(
-        Object.entries(approvals.excecoes)
-          .filter(([id]) => idsDeExcecao.has(id))
-          .map(([id, a]) => [id, revalidar(a)]),
-      )
-
-      const mapeamentoVale = mapeamentoSobrevive(alteradas)
-      const novas: Approvals = {
-        mapeamentoSme: mapeamentoVale && approvals.mapeamentoSme ? revalidar(approvals.mapeamentoSme) : null,
-        mapeamento: mapeamentoVale && approvals.mapeamento ? revalidar(approvals.mapeamento) : null,
-        clusters,
-        excecoes,
-        // O pacote e a reconciliação são o artefato que mudou. Sempre caem.
-        pacote: null,
-        reconciliacao: null,
-      }
+      const novas = carregarAssinaturas(approvals, de, versao, depois)
 
       set({ regeneracao: { de, para: versao } })
       recomputar({ playbookVersion: versao, approvals: novas })
@@ -356,6 +449,42 @@ export const useSimulation = create<SimulationState>((set, get) => {
         },
       }),
 
+    alternarApresentacao: () => {
+      const { ativa } = get().apresentacao
+      if (ativa) {
+        set({ apresentacao: APRESENTACAO_INICIAL })
+        return
+      }
+      set({ apresentacao: { ativa: true, passo: 1, notas: false } })
+      get().irParaPasso(1)
+    },
+
+    sairDaApresentacao: () => set({ apresentacao: APRESENTACAO_INICIAL }),
+
+    alternarNotas: () =>
+      set({ apresentacao: { ...get().apresentacao, notas: !get().apresentacao.notas } }),
+
+    irParaPasso: (n) => {
+      const alvo = Math.min(Math.max(n, 1), TOTAL_DE_PASSOS)
+      const passo = passoPorNumero(alvo)
+      const atual = get()
+      const avancando = alvo >= atual.apresentacao.passo
+      // Para a frente: ao menos o nível do passo, preservando o que foi feito ao
+      // vivo. Para trás: exatamente o nível do passo, para remostrar.
+      const nivel = avancando ? (Math.max(passo.nivel, nivelAtual(atual)) as NivelDeEstado) : passo.nivel
+      const estado = estadoDoNivel(nivel)
+
+      set({
+        apresentacao: { ...atual.apresentacao, passo: alvo },
+        assinaturasDeGate: avancando
+          ? { ...atual.assinaturasDeGate, ...estado.assinaturasDeGate }
+          : estado.assinaturasDeGate,
+        regeneracao:
+          nivel >= NIVEIS.corrigido ? { de: PLAYBOOK_VERSION, para: PROXIMA_VERSAO } : null,
+      })
+      recomputar({ playbookVersion: estado.playbookVersion, approvals: estado.approvals })
+    },
+
     ligarFlags: (ids) => {
       if (ids.length === 0) return
       const atuais = get().flags
@@ -371,9 +500,12 @@ export const useSimulation = create<SimulationState>((set, get) => {
         },
       }),
 
+    // Reiniciar a demonstração NÃO derruba o roteiro: na sala, a tecla de reset
+    // serve justamente para reapresentar sem recarregar. Volta ao passo 1.
     reset: () =>
       set({
         ...ESTADO_INICIAL,
+        apresentacao: { ...get().apresentacao, passo: 1, notas: false },
         run: derivar(ESTADO_INICIAL.spe, ESTADO_INICIAL.playbookVersion, ESTADO_INICIAL.approvals),
       }),
   }

@@ -16,7 +16,7 @@
 import type { PlaybookRule } from '@/data/playbook'
 import { ordemDaVersao, ordemDasVersoes } from '@/data/playbook-history'
 import { sealPlaybook } from '@/engine/kanon'
-import type { ExceptionRecord, PipelineRun, StepId } from '@/engine/pipeline'
+import type { Approvals, ExceptionRecord, PipelineRun, Signature, StepId } from '@/engine/pipeline'
 import { pipelineSteps } from '@/engine/pipeline'
 
 export interface RegraAlterada {
@@ -138,6 +138,43 @@ export function diffDeRegeneracao(antes: PipelineRun, depois: PipelineRun): Diff
     retidosPara: depois.records.filter((r) => r.outcome === 'held').length,
     pacoteDe: pacoteDe(antes),
     pacotePara: pacoteDe(depois),
+  }
+}
+
+/**
+ * Carrega para a versão nova as assinaturas cujo artefato NÃO mudou.
+ *
+ * Aprovação vale para o artefato que ela cobre. Zerar tudo a cada correção seria
+ * conservador demais e tornaria correção cara; manter tudo seria mentira. O meio
+ * honesto é este: preserva o que sobreviveu, marca com `revalidadaEm`, e derruba
+ * sempre pacote e reconciliação — o artefato mudou de checksum, e assinatura dada
+ * sobre outro conteúdo não vale.
+ *
+ * `depois` é o run na versão nova: é ele que diz quais clusters e exceções ainda
+ * existem. Assinatura de item que sumiu não fica órfã.
+ */
+export function carregarAssinaturas(
+  approvals: Approvals,
+  de: string,
+  para: string,
+  depois: PipelineRun,
+): Approvals {
+  const revalidar = (a: Signature): Signature => ({ ...a, revalidadaEm: para })
+  const sobrevive = <T,>(registro: Readonly<Record<string, Signature>>, vivos: Set<string>) =>
+    Object.fromEntries(
+      Object.entries(registro)
+        .filter(([id]) => vivos.has(id))
+        .map(([id, a]) => [id, revalidar(a)]),
+    ) as T
+
+  const mapeamentoVale = mapeamentoSobrevive(regrasAlteradasEntre(de, para))
+  return {
+    mapeamentoSme: mapeamentoVale && approvals.mapeamentoSme ? revalidar(approvals.mapeamentoSme) : null,
+    mapeamento: mapeamentoVale && approvals.mapeamento ? revalidar(approvals.mapeamento) : null,
+    clusters: sobrevive(approvals.clusters, new Set(depois.clusters.map((c) => c.id))),
+    excecoes: sobrevive(approvals.excecoes, new Set(depois.exceptions.map((e) => e.id))),
+    pacote: null,
+    reconciliacao: null,
   }
 }
 

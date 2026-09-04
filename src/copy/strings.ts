@@ -118,6 +118,9 @@ export const strings = {
     cycleLabel: 'Ciclo',
     navLabel: 'Telas',
     skipToContent: 'Ir para o conteúdo',
+    // Sempre visível, em toda tela. Nunca pode haver dúvida de que não é produtivo.
+    demo: 'Ambiente de demonstração',
+    demoDetalhe: 'dados sintéticos',
   },
   nav: {
     missionControl: 'Mission Control',
@@ -816,6 +819,31 @@ export const strings = {
       em: 'em',
       sobre: 'sobre',
     },
+  },
+  apresentacao: {
+    titulo: 'Modo de apresentação',
+    roteiro: 'Roteiro',
+    passoDe: 'de',
+    previsto: 'previsto',
+    total: 'roteiro',
+    fraseChave: 'Frase-chave',
+    acoes: 'Na tela',
+    notas: 'Se perguntarem',
+    proximo: 'Próximo passo',
+    ultimo: 'Último passo do roteiro',
+    abrirNotas: 'Notas',
+    fecharNotas: 'Fechar notas',
+    somenteApresentador:
+      'Painel do apresentador. Se a tela estiver espelhada para o cliente, feche antes de continuar.',
+    atalhos: {
+      titulo: 'Atalhos',
+      passos: 'passo anterior e seguinte',
+      notas: 'notas do apresentador',
+      reset: 'reiniciar a demonstração do zero',
+      sair: 'sair do modo de apresentação',
+      ligar: 'ligar o modo de apresentação',
+    },
+    dica: 'Pressione P para conduzir a demonstração por um roteiro.',
   },
 } as const
 

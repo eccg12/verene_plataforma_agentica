@@ -19,3 +19,6 @@ export const paths = {
 } as const
 
 export type Path = (typeof paths)[keyof typeof paths]
+
+/** Abre `/playbook` já com uma regra selecionada: `/playbook?regra=R-SUP-023`. */
+export const PARAM_REGRA = 'regra'

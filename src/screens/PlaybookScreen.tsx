@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ArrowRight, FileText, Wrench, X } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 
-import { paths } from '@/app/paths'
+import { PARAM_REGRA, paths } from '@/app/paths'
 import { Button } from '@/components/Button'
 import { Table, Tbody, Td, Th, Thead, Tr } from '@/components/DataTable'
 import { Surface } from '@/components/Surface'
@@ -365,7 +366,12 @@ export function PlaybookScreen() {
   const [agente, setAgente] = useState<Filtro<AgentName>>('todos')
   const [objeto, setObjeto] = useState<Filtro<ObjetoFiltro>>('todos')
   const [tipo, setTipo] = useState<Filtro<RuleType>>('todos')
-  const [selecionada, setSelecionada] = useState<string | null>(playbookRules[0]?.id ?? null)
+  // A regra pode vir na URL. É o que faz o roteiro de apresentação abrir a regra
+  // certa em vez de deixar quem apresenta caçando linha numa tabela de 55.
+  const [busca] = useSearchParams()
+  const [selecionada, setSelecionada] = useState<string | null>(
+    busca.get(PARAM_REGRA) ?? playbookRules[0]?.id ?? null,
+  )
   const [mostrarDoc, setMostrarDoc] = useState(false)
 
   const selado = sealPlaybook(playbookVersion)

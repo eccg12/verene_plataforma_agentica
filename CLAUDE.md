@@ -320,6 +320,39 @@ zero registros. Assinadas as duas, as contagens sobem de 12 para 23 regras aplic
 tira um da fila de recusa; percorrendo as filas e assinando G4 a G7, os oito fecham e o painel
 comercial passa de 0% para 100% liberado.
 
+## Modo de apresentação
+
+Na primeira sala o protótipo precisa ser **conduzido, não explorado**. `P` liga o roteiro: nove
+passos, ~9 minutos, navegáveis por seta. A sequência é Mission Control → dicionário de mapeamento
+→ rastreabilidade de um registro → fila de duplicatas → fila de exceções → Momento 1 → Momento 2
+→ reconciliação por origem → assinatura do G6.
+
+O que faz o modo servir para alguma coisa é que **cada passo encontra a onda no estado que ele
+precisa**. `src/data/presentation.ts` declara o nível de estado de cada passo e `estadoDoNivel`,
+na store, assina exatamente o que um humano assinaria — mesmos papéis, mesmo instante
+determinístico. O que o roteiro poupa é o tempo de clicar, não a decisão. Em particular, o passo
+5 chega com a fila de exceções **em aberto**, e o passo 6 chega com os 8 defeitos do corte errado
+**retidos** — aprovar o registro só carimbaria o corte errado, e é corrigindo a regra que eles
+saem da fila.
+
+Andar para a frente garante **ao menos** o nível do passo, então o que o apresentador fez ao vivo
+não é desfeito: publicar a v1.4.0 no passo 6 sobrevive à seta. Voltar rebobina **exatamente** até
+o passo, que é o que permite remostrar depois de uma pergunta. Há teste para os dois sentidos.
+
+- `P` liga e desliga · `← →` andam · `N` abre as notas · `R` reinicia do zero · `ESC` sai.
+- As **notas do apresentador** (`N`) trazem a frase-chave a dizer, o que fazer na tela e o que
+  sustentar se perguntarem. Nascem fechadas. O painel avisa que, com a tela espelhada, o cliente
+  vê junto — a tecla protege o conteúdo, não o arranjo de telas.
+- `R` reinicia a onda **sem derrubar o roteiro** e volta ao passo 1: é o que permite reapresentar
+  sem recarregar.
+- A barra inferior mostra o passo, o nome e o tempo **previsto**. Não há cronômetro: relógio de
+  parede seria a única coisa não determinística da interface (regra 4).
+- `/playbook?regra=R-SUP-023` abre a regra já selecionada. O roteiro chega na regra, não perto
+  dela.
+
+**O selo de ambiente de demonstração é permanente**, em toda tela, sem tecla para esconder. Um
+protótipo bem feito parece um sistema — e é por parecer que ele precisa dizer que não é.
+
 ## Comandos
 
 Para a chamada ao vivo do Momento 2, copie `.env.example` para `.env.local` e preencha
