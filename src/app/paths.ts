@@ -1,6 +1,7 @@
 /** Rotas do protótipo. Telas novas registram seu path aqui antes de virar rota. */
 export const paths = {
   home: '/',
+  missionControl: '/mission-control',
   styleguide: '/styleguide',
 } as const
 

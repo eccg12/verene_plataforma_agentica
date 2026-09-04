@@ -16,6 +16,7 @@ import { create } from 'zustand'
 
 import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
 import { PLAYBOOK_VERSION } from '@/data/playbook'
+import type { Cycle } from '@/data/scope'
 import type { SpeId } from '@/data/types'
 import { simInstant } from '@/engine/clock'
 import {
@@ -31,12 +32,15 @@ export type SpeFilter = SpeId | 'todas'
 
 export interface SimulationState {
   readonly spe: SpeFilter
+  /** Ciclo corrente, exibido na barra superior e usado para recortar a grade. */
+  readonly ciclo: Cycle
   readonly playbookVersion: string
   readonly approvals: Approvals
   /** Derivado das três chaves acima. Nunca é escrito à mão. */
   readonly run: PipelineRun
 
   setSpe: (spe: SpeFilter) => void
+  setCiclo: (ciclo: Cycle) => void
   setPlaybookVersion: (version: string) => void
   approveMapping: (decision: Decision, note?: string) => void
   confirmCluster: (clusterId: string, decision: Decision, note?: string) => void
@@ -86,6 +90,7 @@ function derivar(spe: SpeFilter, playbookVersion: string, approvals: Approvals):
 
 const ESTADO_INICIAL = {
   spe: 'SPE-1' as SpeFilter,
+  ciclo: 'ciclo-1' as Cycle,
   playbookVersion: PLAYBOOK_VERSION,
   approvals: emptyApprovals,
 }
@@ -109,6 +114,9 @@ export const useSimulation = create<SimulationState>((set, get) => {
     // Trocar de SPE ou de versão de playbook zera as assinaturas: assinatura
     // vale para um recorte e uma versão, não atravessa nenhum dos dois.
     setSpe: (spe) => recomputar({ spe, approvals: emptyApprovals }),
+    // trocar de ciclo não invalida assinatura: o ciclo é recorte de leitura da
+    // grade, não entra na esteira.
+    setCiclo: (ciclo) => set({ ciclo }),
     setPlaybookVersion: (playbookVersion) => recomputar({ playbookVersion, approvals: emptyApprovals }),
 
     approveMapping: (decision, note) =>

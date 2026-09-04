@@ -7,11 +7,19 @@
  * superfície.
  */
 
+export { AgentStrip } from './AgentStrip'
+export { AppShell } from './AppShell'
 export { BrandLogo } from './BrandLogo'
 export { Button } from './Button'
 export { Table, Tbody, Td, Th, Thead, Tr } from './DataTable'
+export { DefectMap } from './DefectMap'
 export { DefectOrigin } from './DefectOrigin'
+export { IntakePanel } from './IntakePanel'
+export { PackageGrid } from './PackageGrid'
 export { Section } from './Section'
+export { SideNav } from './SideNav'
 export { StateBadge } from './StateBadge'
 export { Surface } from './Surface'
 export { TokenSwatch } from './TokenSwatch'
+export { TopBar } from './TopBar'
+export { WavePlan } from './WavePlan'

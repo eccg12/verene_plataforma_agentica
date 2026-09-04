@@ -27,6 +27,9 @@ export const SAP_TERMS = [
 /** Nomes de artefatos contratuais e do processo de entrega. */
 export const CONTRACT_ARTIFACTS = [
   'Gate',
+  'Wave',
+  'Mission Control',
+  'fingerprint',
   'playbook',
   'manifest',
   'checksum',

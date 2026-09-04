@@ -16,6 +16,22 @@ export type { SpeId }
 export const cycles = ['ciclo-1', 'ciclo-2'] as const
 export type Cycle = (typeof cycles)[number]
 
+export interface CycleSpec {
+  readonly id: Cycle
+  readonly nome: string
+  readonly descricao: string
+}
+
+/** O segundo ciclo é o cutover — termo preservado, não traduzido. */
+export const cycleSpecs: readonly CycleSpec[] = [
+  { id: 'ciclo-1', nome: 'Ciclo de teste', descricao: 'Carga de ensaio, com reconciliação completa e sem efeito em produção.' },
+  { id: 'ciclo-2', nome: 'Cutover de produção', descricao: 'Carga definitiva, na janela acordada, com o mesmo playbook aprovado no ciclo de teste.' },
+]
+
+export const cycleById: Readonly<Record<Cycle, CycleSpec>> = Object.fromEntries(
+  cycleSpecs.map((c) => [c.id, c]),
+) as Readonly<Record<Cycle, CycleSpec>>
+
 export interface ScopeObject {
   readonly id: string
   readonly nome: string

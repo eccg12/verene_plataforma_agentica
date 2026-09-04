@@ -150,6 +150,27 @@ playbook = saída idêntica byte a byte, e há teste comparando `JSON.stringify`
 que um humano decidiu — recorte e assinaturas. O resultado da esteira não é estado: é derivado a
 cada mudança, porque derivar de algo determinístico não pode divergir do que as regras produziriam.
 
+## Telas
+
+`AppShell` monta barra superior + navegação lateral + conteúdo. A barra mantém **sempre
+visíveis** a versão do playbook e o ciclo corrente: sem os dois, nenhum número de nenhuma tela
+tem contexto. A superfície escura é o padrão do shell; tela de documento aplica `surface-paper`
+no próprio conteúdo e a barra continua escura — as superfícies aninham corretamente.
+
+`/mission-control` é a tela de operação. **Todo número dela sai das fixtures**, derivado em
+`src/engine/mission-control.ts`; nenhum componente calcula ou digita número. Em particular:
+
+- a grade de 48 pacotes lê `src/data/packages.ts`, cujos volumes por SPE **somam o volume de
+  referência do objeto em `scope.ts`** — há teste, o quadro não pode contradizer o escopo;
+- o mapa de defeitos conta os `_plantedDefect` das fixtures, cortados por objeto e por dimensão
+  de qualidade, e a soma dos dois cortes tem que bater;
+- o recebimento **conta e faz o fingerprint do conteúdo de fato**, nunca repete o número que o
+  vendor declarou — é isso que faz o recibo valer alguma coisa;
+- o estado de atividade dos agentes é derivado do run corrente da esteira.
+
+Onde não há extrato — pedidos, requisições e posições de estoque —, o quadro mostra `não
+iniciado`. Declarar estado de dado que não existe seria inventar.
+
 ## Comandos
 
 ```bash
