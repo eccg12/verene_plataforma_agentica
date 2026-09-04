@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import { agentNames } from '@/data/agents'
 import { defectOriginIds } from '@/data/defect-taxonomy'
-import { PLAYBOOK_VERSION, playbookRules, ruleTypes } from '@/data/playbook'
+import { PLAYBOOK_VERSION, PROXIMA_VERSAO, playbookRules, ruleTypes } from '@/data/playbook'
+import { ordemDasVersoes } from '@/data/playbook-history'
 import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
 import { generateDocumentation, PlaybookViolation, resolveRule, sealPlaybook } from '@/engine/kanon'
 import {
@@ -28,23 +29,28 @@ const assinatura = (decision: Decision = 'approved'): Signature => ({
 })
 
 /** Roda a esteira até o fim, assinando cada checkpoint conforme ele aparece. */
-function correrAteOFim(records: readonly (typeof nasajonSuppliers)[number][], decisaoExcecao: Decision = 'approved'): PipelineRun {
-  let approvals: Approvals = { ...emptyApprovals, mapeamentoSme: assinatura(), mapeamento: assinatura() }
-  let run = runPipeline({ records, approvals })
+function correrAteOFim(
+  records: readonly (typeof nasajonSuppliers)[number][],
+  decisaoExcecao: Decision = 'approved',
+  playbookVersion: string = PLAYBOOK_VERSION,
+): PipelineRun {
+  const assina = (d: Decision = 'approved') => ({ ...assinatura(d), playbookVersion })
+  let approvals: Approvals = { ...emptyApprovals, mapeamentoSme: assina(), mapeamento: assina() }
+  let run = runPipeline({ records, approvals, playbookVersion })
 
   approvals = {
     ...approvals,
-    clusters: Object.fromEntries(run.clusters.map((c) => [c.id, assinatura()])),
+    clusters: Object.fromEntries(run.clusters.map((c) => [c.id, assina()])),
   }
-  run = runPipeline({ records, approvals })
+  run = runPipeline({ records, approvals, playbookVersion })
 
   approvals = {
     ...approvals,
-    excecoes: Object.fromEntries(run.exceptions.map((e) => [e.id, assinatura(decisaoExcecao)])),
-    pacote: assinatura(),
-    reconciliacao: assinatura(),
+    excecoes: Object.fromEntries(run.exceptions.map((e) => [e.id, assina(decisaoExcecao)])),
+    pacote: assina(),
+    reconciliacao: assina(),
   }
-  return runPipeline({ records, approvals })
+  return runPipeline({ records, approvals, playbookVersion })
 }
 
 // ============================================================ playbook e KANON
@@ -57,9 +63,14 @@ describe('playbook GALAXY v1', () => {
     }
   })
 
-  it('tem id único e todos os campos de governança preenchidos', () => {
-    const ids = playbookRules.map((r) => r.id)
-    expect(new Set(ids).size).toBe(ids.length)
+  it('tem id único DENTRO de cada versão e todos os campos de governança preenchidos', () => {
+    // Duas redações da mesma regra compartilham o id de propósito; o que não
+    // pode haver é duas redações vigentes ao mesmo tempo — aí o agente não
+    // saberia qual executar.
+    for (const versao of ordemDasVersoes) {
+      const ids = sealPlaybook(versao).rules.map((r) => r.id)
+      expect(new Set(ids).size, versao).toBe(ids.length)
+    }
     for (const r of playbookRules) {
       expect(r.owner, r.id).not.toBe('')
       expect(r.rationale, r.id).not.toBe('')
@@ -88,7 +99,11 @@ describe('KANON — a regra vive num lugar só', () => {
     const b = sealPlaybook(PLAYBOOK_VERSION)
     expect(a.checksum).toBe(b.checksum)
     expect(a.checksum).toMatch(/^[0-9a-f]{8}$/)
-    expect(a.totalRegras).toBe(playbookRules.length)
+    expect(a.totalRegras).toBe(a.rules.length)
+    // A v1.4.0 troca a redação da R-SUP-023: mesmo número de regras, checksum diferente.
+    const nova = sealPlaybook(PROXIMA_VERSAO)
+    expect(nova.totalRegras).toBe(a.totalRegras)
+    expect(nova.checksum).not.toBe(a.checksum)
   })
 
   it('recusa regra que não existe na versão', () => {
@@ -111,11 +126,12 @@ describe('KANON — a regra vive num lugar só', () => {
 
   it('gera a documentação a partir do playbook, não de texto solto', () => {
     const doc = generateDocumentation(PLAYBOOK_VERSION)
+    const selado = sealPlaybook(PLAYBOOK_VERSION)
     const total = doc.reduce((acc, s) => acc + s.regras.length, 0)
-    expect(total).toBe(playbookRules.length)
+    expect(total).toBe(selado.totalRegras)
     for (const secao of doc) {
       for (const regra of secao.regras) {
-        const fonte = playbookRules.find((r) => r.id === regra.id)
+        const fonte = selado.rules.find((r) => r.id === regra.id)
         expect(regra.expressao).toBe(fonte?.expression)
         expect(regra.porque).toBe(fonte?.rationale)
       }
@@ -383,7 +399,10 @@ describe('achados que a esteira precisa produzir', () => {
   it('escala a divergência de retenção entre SPEs como decisão do cliente', () => {
     const run = correrAteOFim(TODOS, 'rejected')
     const divergencias = run.exceptions.filter((e) => e.defectTypeId === 'DEF-TGT-04')
-    expect(divergencias).toHaveLength(2)
+    // Duas duplas, quatro registros: a regra manda reter AMBOS os lados, e reter
+    // só o lado etiquetado no extrato seria a implementação contradizendo a regra.
+    expect(divergencias).toHaveLength(4)
+    expect(divergencias.map((e) => e.recordCode).sort()).toEqual(['F1009', 'F2008', 'F3007', 'F4007'])
     for (const e of divergencias) {
       expect(e.origin).toBe('target-config')
       expect(e.monodaResponsavel).toBe(false)
@@ -412,8 +431,8 @@ describe('achados que a esteira precisa produzir', () => {
     }
   })
 
-  it('quebra razão social maior que 40 caracteres sem cortar palavra ao meio', () => {
-    const run = correrAteOFim(TODOS)
+  it('na v1.4.0 quebra razão social maior que 40 caracteres sem cortar palavra ao meio', () => {
+    const run = correrAteOFim(TODOS, 'approved', PROXIMA_VERSAO)
     const quebrados = run.records.filter((r) => (r.target?.nameOrg2 ?? null) !== null)
     expect(quebrados.length).toBeGreaterThan(0)
     for (const r of quebrados) {

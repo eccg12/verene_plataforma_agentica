@@ -12,6 +12,7 @@ export const paths = {
   record: '/record/:id',
   duplicates: '/review/duplicates',
   exceptions: '/review/exceptions',
+  candidate: '/review/candidate',
   packages: '/packages',
   reconciliation: '/reconciliation',
   styleguide: '/styleguide',

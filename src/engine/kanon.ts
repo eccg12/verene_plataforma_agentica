@@ -15,6 +15,7 @@
  */
 import type { AgentName } from '@/data/agents'
 import { PLAYBOOK_VERSION, playbookRules, type PlaybookRule } from '@/data/playbook'
+import { ordemDaVersao } from '@/data/playbook-history'
 import { hashSeed } from '@/engine/random'
 
 export class PlaybookViolation extends Error {
@@ -35,22 +36,55 @@ export interface SealedPlaybook {
 }
 
 const canonical = (rule: PlaybookRule): string =>
-  [rule.id, rule.agent, rule.object, rule.field, rule.type, rule.expression, rule.status, rule.nature].join('')
+  [
+    rule.id,
+    rule.agent,
+    rule.object,
+    rule.field,
+    rule.type,
+    rule.expression,
+    rule.status,
+    rule.nature,
+    // O parâmetro entra no checksum: duas redações que só diferem no parâmetro
+    // produzem saídas diferentes, então não podem selar igual.
+    JSON.stringify(rule.parametros ?? {}),
+  ].join('')
 
 const cache = new Map<string, SealedPlaybook>()
+
+/**
+ * A regra está vigente nesta versão?
+ *
+ * Vigência, não igualdade: a regra vale da versão em que entrou até a versão em
+ * que foi substituída (exclusive). É o que permite uma regra ter mais de uma
+ * redação sem duplicar o playbook inteiro a cada publicação — e é o que faz
+ * "corrigir uma regra" ser uma operação de versão, não de edição no lugar.
+ */
+function vigenteEm(rule: PlaybookRule, ordem: number): boolean {
+  const entrou = ordemDaVersao(rule.introducedIn)
+  if (entrou < 0 || entrou > ordem) return false
+  if (rule.vigenteAte === undefined) return true
+  const saiu = ordemDaVersao(rule.vigenteAte)
+  return saiu < 0 ? true : ordem < saiu
+}
 
 /** Publica e sela uma versão do playbook. Selada, é imutável. */
 export function sealPlaybook(version: string = PLAYBOOK_VERSION): SealedPlaybook {
   const cached = cache.get(version)
   if (cached) return cached
 
+  const ordem = ordemDaVersao(version)
+  if (ordem < 0) {
+    throw new PlaybookViolation(`Versão ${version} não está declarada no histórico do playbook.`)
+  }
+
   const rules = playbookRules
-    .filter((r) => r.playbookVersion === version)
+    .filter((r) => vigenteEm(r, ordem))
     .slice()
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
 
   if (rules.length === 0) {
-    throw new PlaybookViolation(`Nenhuma regra publicada na versão ${version} do playbook.`)
+    throw new PlaybookViolation(`Nenhuma regra vigente na versão ${version} do playbook.`)
   }
 
   const sealed: SealedPlaybook = {
@@ -86,6 +120,28 @@ export function resolveRule(ruleId: string, agent: AgentName, version: string): 
     )
   }
   return rule
+}
+
+/**
+ * Parâmetro de uma regra, lido pelo MESMO caminho que a regra: `resolveRule`.
+ *
+ * Um agente não alcança um parâmetro sem passar pelo guarda — se pudesse, a
+ * correção de uma regra viraria edição de código do agente, e a tese caía.
+ */
+export function parametroDaRegra(
+  ruleId: string,
+  agent: AgentName,
+  version: string,
+  nome: string,
+): string | number | boolean {
+  const rule = resolveRule(ruleId, agent, version)
+  const valor = rule.parametros?.[nome]
+  if (valor === undefined) {
+    throw new PlaybookViolation(
+      `Regra ${ruleId} não declara o parâmetro "${nome}" na versão ${version}. Agente não inventa parâmetro.`,
+    )
+  }
+  return valor
 }
 
 /** Todas as regras de um agente numa versão. */

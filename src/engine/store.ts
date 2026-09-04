@@ -16,6 +16,7 @@ import { create } from 'zustand'
 
 import { flagsDesligadas, type FlagId } from '@/app/flags'
 import type { GateId } from '@/data/gates'
+import { mapeamentoSobrevive, regrasAlteradasEntre } from '@/engine/regeneration'
 import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
 import { PLAYBOOK_VERSION } from '@/data/playbook'
 import type { Cycle } from '@/data/scope'
@@ -31,6 +32,21 @@ import {
 } from '@/engine/pipeline'
 
 export type SpeFilter = SpeId | 'todas'
+
+/**
+ * O que o dono pode fazer com uma regra candidata.
+ *
+ * Nenhuma das três executa a regra: KANON recusa candidata, e promoção exige uma
+ * nova versão selada (R-GOV-004). Confirmar registra que o dono do processo
+ * reconheceu a regra — o que entra na próxima versão, não nesta.
+ */
+export type DecisaoDeCandidata = 'confirmada' | 'rejeitada' | 'reformular'
+
+export interface RegistroDeCandidata {
+  readonly decisao: DecisaoDeCandidata
+  readonly assinatura: Signature
+  readonly nota: string | null
+}
 
 /**
  * Run sobre as quatro SPEs, com as assinaturas correntes.
@@ -56,6 +72,18 @@ export interface SimulationState {
   setSpe: (spe: SpeFilter) => void
   setCiclo: (ciclo: Cycle) => void
   setPlaybookVersion: (version: string) => void
+  /**
+   * Adota uma versão do playbook já selada por KANON — o que a tela chama de
+   * "corrigir e publicar".
+   *
+   * Diferente de `setPlaybookVersion`, que zera tudo: aqui as assinaturas cujo
+   * artefato NÃO mudou são carregadas para a nova versão, marcadas como
+   * revalidadas. Pacote e reconciliação caem sempre — o artefato mudou de
+   * checksum, e assinatura dada sobre outro conteúdo não vale.
+   */
+  publicarVersao: (version: string) => void
+  /** De onde para onde a última publicação foi. `null` antes de qualquer uma. */
+  readonly regeneracao: { readonly de: string; readonly para: string } | null
   /** Aprovação técnica do SAP SME sobre o de-para. */
   approveMappingSme: (decision: Decision, note?: string) => void
   /** Assinatura do data owner da Verene no Gate 1. */
@@ -92,6 +120,9 @@ export interface SimulationState {
    * no-op aqui — a decisão pertence a quem revisa a evidência.
    */
   assinarGate: (gate: GateId, decision: Decision, note?: string) => void
+  /** Decisões sobre regras candidatas, por id de regra. */
+  readonly candidatas: Readonly<Record<string, RegistroDeCandidata>>
+  decidirRegraCandidata: (ruleId: string, decisao: DecisaoDeCandidata, nota?: string) => void
   /** Flags de demonstração, ligadas por parâmetro de URL. Não persistem. */
   readonly flags: Readonly<Record<FlagId, boolean>>
   ligarFlags: (ids: readonly FlagId[]) => void
@@ -139,6 +170,8 @@ function derivar(spe: SpeFilter, playbookVersion: string, approvals: Approvals):
 }
 
 const ESTADO_INICIAL = {
+  candidatas: {} as Readonly<Record<string, RegistroDeCandidata>>,
+  regeneracao: null as { readonly de: string; readonly para: string } | null,
   verificacoesFiori: {} as Readonly<Record<string, Signature>>,
   assinaturasDeGate: {} as Readonly<Partial<Record<GateId, Signature>>>,
   flags: flagsDesligadas,
@@ -171,6 +204,46 @@ export const useSimulation = create<SimulationState>((set, get) => {
     // grade, não entra na esteira.
     setCiclo: (ciclo) => set({ ciclo }),
     setPlaybookVersion: (playbookVersion) => recomputar({ playbookVersion, approvals: emptyApprovals }),
+
+    publicarVersao: (versao) => {
+      const { playbookVersion: de, approvals } = get()
+      if (versao === de) return
+
+      const depois = runDeTodasSpes(versao, approvals)
+      const alteradas = regrasAlteradasEntre(de, versao)
+
+      // Assinatura carregada, não recriada: quem assinou e quando continuam os
+      // originais; o que se acrescenta é a versão em que ela foi revalidada.
+      const revalidar = (a: Signature): Signature => ({ ...a, revalidadaEm: versao })
+
+      const idsDeCluster = new Set(depois.clusters.map((c) => c.id))
+      const clusters = Object.fromEntries(
+        Object.entries(approvals.clusters)
+          .filter(([id]) => idsDeCluster.has(id))
+          .map(([id, a]) => [id, revalidar(a)]),
+      )
+
+      const idsDeExcecao = new Set(depois.exceptions.map((e) => e.id))
+      const excecoes = Object.fromEntries(
+        Object.entries(approvals.excecoes)
+          .filter(([id]) => idsDeExcecao.has(id))
+          .map(([id, a]) => [id, revalidar(a)]),
+      )
+
+      const mapeamentoVale = mapeamentoSobrevive(alteradas)
+      const novas: Approvals = {
+        mapeamentoSme: mapeamentoVale && approvals.mapeamentoSme ? revalidar(approvals.mapeamentoSme) : null,
+        mapeamento: mapeamentoVale && approvals.mapeamento ? revalidar(approvals.mapeamento) : null,
+        clusters,
+        excecoes,
+        // O pacote e a reconciliação são o artefato que mudou. Sempre caem.
+        pacote: null,
+        reconciliacao: null,
+      }
+
+      set({ regeneracao: { de, para: versao } })
+      recomputar({ playbookVersion: versao, approvals: novas })
+    },
 
     approveMappingSme: (decision, note) =>
       recomputar({
@@ -267,6 +340,21 @@ export const useSimulation = create<SimulationState>((set, get) => {
         },
       })
     },
+
+    decidirRegraCandidata: (ruleId, decisao, nota) =>
+      set({
+        candidatas: {
+          ...get().candidatas,
+          [ruleId]: {
+            decisao,
+            // Quem decide é o dono do processo, não a engenharia. A assinatura
+            // registra a decisão; ela não promove a regra — promover é ato de
+            // KANON, numa nova versão selada.
+            assinatura: sign(signatories.excecoes, get().playbookVersion, decisao === 'rejeitada' ? 'rejected' : 'approved', nota),
+            nota: nota ?? null,
+          },
+        },
+      }),
 
     ligarFlags: (ids) => {
       if (ids.length === 0) return

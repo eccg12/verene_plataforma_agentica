@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { FileText, X } from 'lucide-react'
+import { ArrowRight, FileText, Wrench, X } from 'lucide-react'
 
+import { paths } from '@/app/paths'
 import { Button } from '@/components/Button'
 import { Table, Tbody, Td, Th, Thead, Tr } from '@/components/DataTable'
 import { Surface } from '@/components/Surface'
@@ -9,9 +10,11 @@ import { strings } from '@/copy/strings'
 import { agentNames, type AgentName } from '@/data/agents'
 import { historicoDaRegra } from '@/data/playbook-history'
 import { playbookRules, ruleTypes, type PlaybookRule, type RuleType } from '@/data/playbook'
+import { PropagationTrail, type NoDePropagacao } from '@/components/PropagationTrail'
+import { diffDeRegeneracao, regraCorrigida } from '@/engine/regeneration'
 import { generateDocumentation, sealPlaybook } from '@/engine/kanon'
 import { resumoDoPlaybook, usoDasRegras } from '@/engine/playbook-usage'
-import { useSimulation } from '@/engine/store'
+import { runDeTodasSpes, useSimulation } from '@/engine/store'
 
 const ICON = 14
 const t = strings.playbook
@@ -92,6 +95,95 @@ function DocumentacaoGerada({ aoFechar }: { readonly aoFechar: () => void }) {
         ))}
       </div>
     </div>
+  )
+}
+
+/**
+ * A correção de uma regra, quando existe redação mais nova que a versão em uso.
+ *
+ * Não é edição no lugar: a redação nova já está publicada e selada por KANON, e
+ * o que o botão faz é a onda ADOTAR essa versão. É a diferença entre mexer na
+ * regra e versionar a regra — e é ela que sustenta a trilha.
+ */
+function BlocoDeCorrecao({ regra }: { readonly regra: PlaybookRule }) {
+  const playbookVersion = useSimulation((s) => s.playbookVersion)
+  const approvals = useSimulation((s) => s.approvals)
+  const publicar = useSimulation((s) => s.publicarVersao)
+  const c = strings.correcao
+
+  const proxima = regraCorrigida(regra.id, playbookVersion)
+  if (proxima === null) return null
+
+  const antes = runDeTodasSpes(playbookVersion, approvals)
+  const depois = runDeTodasSpes(proxima.versao, approvals)
+  const diff = diffDeRegeneracao(antes, depois)
+  const alteracao = historicoDaRegra(regra.id).find((a) => a.versao === proxima.versao)
+
+  const parametros = [
+    ...new Set([
+      ...Object.keys(regra.parametros ?? {}),
+      ...Object.keys(proxima.regra.parametros ?? {}),
+    ]),
+  ].filter((k) => String(regra.parametros?.[k]) !== String(proxima.regra.parametros?.[k]))
+
+  return (
+    <section className="mt-3 border border-accent bg-surface-sunken">
+      <header className="border-b border-line px-2.5 py-1.5">
+        <h3 className="flex items-center gap-1.5 text-sm font-medium text-accent">
+          <Wrench size={ICON} aria-hidden="true" />
+          {c.titulo}
+        </h3>
+      </header>
+
+      <div className="px-2.5 py-2">
+        <p className="max-w-[75ch] text-xs text-fg-muted">{c.nota}</p>
+
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <div>
+            <p className="text-2xs uppercase tracking-wider text-fg-subtle">{c.expressaoAntes}</p>
+            <p className="mt-0.5 font-mono text-2xs text-fg-muted line-through decoration-held">{regra.expression}</p>
+          </div>
+          <div>
+            <p className="text-2xs uppercase tracking-wider text-fg-subtle">{c.expressaoDepois}</p>
+            <p className="mt-0.5 font-mono text-2xs text-fg">{proxima.regra.expression}</p>
+          </div>
+        </div>
+
+        {parametros.map((nome) => (
+          <p key={nome} className="mt-2 flex flex-wrap items-baseline gap-1.5 text-xs">
+            <span className="text-2xs uppercase tracking-wider text-fg-subtle">{c.parametro}</span>
+            <span className="font-mono text-fg">{nome}</span>
+            <span className="font-mono text-held">{String(regra.parametros?.[nome])}</span>
+            <ArrowRight size={11} className="text-fg-subtle" aria-hidden="true" />
+            <span className="font-mono text-signed">{String(proxima.regra.parametros?.[nome])}</span>
+          </p>
+        ))}
+
+        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 border-t border-line pt-2 text-xs sm:grid-cols-4">
+          <div>
+            <dt className="text-2xs uppercase tracking-wider text-fg-subtle">{c.publicadaEm}</dt>
+            <dd className="tnum text-accent">{proxima.versao}</dd>
+          </div>
+          <div>
+            <dt className="text-2xs uppercase tracking-wider text-fg-subtle">{c.autor}</dt>
+            <dd className="text-fg">{alteracao?.autor ?? proxima.regra.owner}</dd>
+          </div>
+          <div>
+            <dt className="text-2xs uppercase tracking-wider text-fg-subtle">{c.afetados}</dt>
+            <dd className="tnum text-fg">{diff.registrosRetocados.length}</dd>
+          </div>
+          <div>
+            <dt className="text-2xs uppercase tracking-wider text-fg-subtle">{c.excecoesFecham}</dt>
+            <dd className="tnum text-fg">{diff.excecoesFechadas.length}</dd>
+          </div>
+        </dl>
+
+        <Button className="mt-2" onClick={() => publicar(proxima.versao)}>
+          <Wrench size={ICON} aria-hidden="true" />
+          {c.publicar} {proxima.versao}
+        </Button>
+      </div>
+    </section>
   )
 }
 
@@ -190,29 +282,104 @@ function DetalheRegra({ regra }: { readonly regra: PlaybookRule }) {
           <p className="mt-0.5 text-sm text-fg-subtle">{d.naoAplicada}</p>
         )}
       </div>
+
+      <BlocoDeCorrecao regra={regra} />
     </div>
+  )
+}
+
+/** O painel de propagação, montado do diff entre as duas versões. */
+function Propagacao({ de, para }: { readonly de: string; readonly para: string }) {
+  const approvals = useSimulation((s) => s.approvals)
+  const p = strings.propagacao
+  const dt = p.detalhe
+  const painel = useRef<HTMLElement>(null)
+
+  // A publicação acontece no detalhe da regra, lá embaixo na tabela. Sem trazer
+  // o painel para a vista, a animação roda fora da tela — que é o mesmo que não
+  // existir na hora que ela precisa existir.
+  useEffect(() => {
+    painel.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [de, para])
+
+  const diff = diffDeRegeneracao(runDeTodasSpes(de, approvals), runDeTodasSpes(para, approvals))
+  const alterada = diff.regrasAlteradas[0]
+  const parametro = alterada
+    ? Object.keys(alterada.parametrosPara ?? {})
+        .filter((k) => String(alterada.parametrosDe?.[k]) !== String(alterada.parametrosPara?.[k]))
+        .map((k) => `${k}${strings.simbolos.doisPontos}${String(alterada.parametrosPara?.[k])}`)
+    : []
+
+  const nos: readonly NoDePropagacao[] = [
+    {
+      id: 'regra',
+      titulo: p.nos.regra,
+      detalhes: [alterada?.id ?? '', ...parametro].filter((d) => d !== ''),
+      path: paths.playbook,
+    },
+    {
+      id: 'playbook',
+      titulo: p.nos.playbook,
+      detalhes: [para, `${dt.checksum}${strings.simbolos.doisPontos}${diff.checksumPara}`],
+      path: paths.playbook,
+    },
+    {
+      id: 'onda',
+      titulo: p.nos.onda,
+      detalhes: [
+        `${diff.registrosRetocados.length} ${dt.retocados}`,
+        `${diff.excecoesFechadas.length} ${dt.excecoesFechadas}`,
+        `${diff.retidosDe - diff.retidosPara} ${dt.retidosLiberados}`,
+      ],
+      path: paths.exceptions,
+    },
+    {
+      id: 'pacote',
+      titulo: p.nos.pacote,
+      detalhes: [diff.pacotePara?.id ?? '', `${diff.pacotePara?.total ?? 0} ${dt.registros}`].filter((d) => d !== ''),
+      path: paths.packages,
+    },
+    {
+      id: 'manifest',
+      titulo: p.nos.manifest,
+      detalhes: [diff.pacotePara?.datasetChecksum ?? '', dt.aguardaG4].filter((d) => d !== ''),
+      path: paths.gates,
+    },
+  ]
+
+  return (
+    <section ref={painel} className="scroll-mt-4 border border-accent bg-surface-sunken px-2.5 py-2">
+      <h2 className="text-md font-medium text-accent">{p.titulo}</h2>
+      <p className="mt-0.5 max-w-[85ch] text-xs text-fg-muted">{p.nota}</p>
+      <div className="mt-2">
+        <PropagationTrail nos={nos} chave={`${de}-${para}`} />
+      </div>
+    </section>
   )
 }
 
 export function PlaybookScreen() {
   const run = useSimulation((s) => s.run)
+  const playbookVersion = useSimulation((s) => s.playbookVersion)
+  const regeneracao = useSimulation((s) => s.regeneracao)
   const [agente, setAgente] = useState<Filtro<AgentName>>('todos')
   const [objeto, setObjeto] = useState<Filtro<ObjetoFiltro>>('todos')
   const [tipo, setTipo] = useState<Filtro<RuleType>>('todos')
   const [selecionada, setSelecionada] = useState<string | null>(playbookRules[0]?.id ?? null)
   const [mostrarDoc, setMostrarDoc] = useState(false)
 
-  const selado = sealPlaybook()
+  const selado = sealPlaybook(playbookVersion)
   const resumo = resumoDoPlaybook(run)
   const uso = useMemo(() => usoDasRegras(run), [run])
 
-  const filtradas = playbookRules.filter(
+  const vigentes = selado.rules
+  const filtradas = vigentes.filter(
     (r) =>
       (agente === 'todos' || r.agent === agente) &&
       (objeto === 'todos' || r.object === objeto) &&
       (tipo === 'todos' || r.type === tipo),
   )
-  const regra = playbookRules.find((r) => r.id === selecionada) ?? null
+  const regra = vigentes.find((r) => r.id === selecionada) ?? null
 
   return (
     <Surface surface="paper" className="min-h-full">
@@ -234,6 +401,12 @@ export function PlaybookScreen() {
             </Button>
           </div>
           <p className="mt-1 max-w-[80ch] text-sm text-fg-subtle">{t.subtitle}</p>
+
+          {regeneracao === null ? null : (
+            <div className="mt-3">
+              <Propagacao de={regeneracao.de} para={regeneracao.para} />
+            </div>
+          )}
 
           <p className="mt-2 inline-flex items-center gap-2 border-l-2 border-accent bg-surface-sunken px-2 py-1.5">
             <span className="text-xs font-medium text-accent">{t.referenciado}</span>

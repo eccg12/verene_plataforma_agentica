@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 
 import { AppShell } from '@/components/AppShell'
+import { CandidateRuleScreen } from '@/screens/CandidateRuleScreen'
 import { DuplicatesScreen } from '@/screens/DuplicatesScreen'
 import { ExceptionsScreen } from '@/screens/ExceptionsScreen'
 import { GatePaymentScreen } from '@/screens/GatePaymentScreen'
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
       { path: paths.record, element: <RecordScreen /> },
       { path: paths.duplicates, element: <DuplicatesScreen /> },
       { path: paths.exceptions, element: <ExceptionsScreen /> },
+      { path: paths.candidate, element: <CandidateRuleScreen /> },
       { path: paths.packages, element: <PackagesScreen /> },
       { path: paths.reconciliation, element: <ReconciliationScreen /> },
       { path: paths.styleguide, element: <StyleguideScreen /> },

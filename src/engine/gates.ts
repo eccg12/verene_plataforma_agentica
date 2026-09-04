@@ -85,7 +85,11 @@ export interface EntradaDeGates {
  * é decisão registrada, não artefato assinado — o Gate não passa com ela.
  */
 function vale(assinatura: Signature | null | undefined, versao: string): boolean {
-  return assinatura?.decision === 'approved' && assinatura.playbookVersion === versao
+  if (assinatura?.decision !== 'approved') return false
+  // Vale na versão em que foi dada, ou naquela para a qual foi revalidada porque
+  // o artefato que ela cobre não mudou. Ler só `playbookVersion` faria toda
+  // correção de regra derrubar aprovação que ela não tocou.
+  return assinatura.playbookVersion === versao || assinatura.revalidadaEm === versao
 }
 
 function comResponsavel(assinante: Assinante, assinatura: Signature | null): ItemDeTrilha {
@@ -116,7 +120,7 @@ function trilhaEmLote(
     oQueAssina: assinante.oQueAssina,
     area: assinante.area,
     responsavel: ownerDaArea(assinante.area),
-    assinatura: representativa !== null && representativa.playbookVersion === versao ? representativa : null,
+    assinatura: representativa !== null && vale(representativa, versao) ? representativa : null,
     requeridas: itens.length,
     assinadas: dadas.length,
   }
@@ -186,7 +190,7 @@ function pendenciasDoGate(
       pendencias.push({ tipo: 'assinatura', detalhe: item.area, quantidade: 1 })
       continue
     }
-    if (item.assinatura.playbookVersion !== entrada.playbookVersion) {
+    if (!vale(item.assinatura, entrada.playbookVersion)) {
       pendencias.push({ tipo: 'versao', detalhe: item.assinatura.playbookVersion, quantidade: 1 })
     }
   }

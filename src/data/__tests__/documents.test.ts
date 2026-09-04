@@ -6,6 +6,7 @@ import { PLAYBOOK_VERSION, playbookRules, ruleById } from '@/data/playbook'
 import { divergenciasDoPadraoSap, requiredFields, valueDomains } from '@/data/target/tenant-config'
 import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
 import { emptyApprovals, runPipeline, type Approvals, type Signature } from '@/engine/pipeline'
+import { sealPlaybook } from '@/engine/kanon'
 import { resumoDoPlaybook, usoDasRegras } from '@/engine/playbook-usage'
 
 const sig: Signature = {
@@ -77,9 +78,13 @@ describe('uso das regras nesta onda', () => {
     }
   })
 
-  it('o resumo bate com a contagem de regras do playbook', () => {
+  it('o resumo conta a versão vigente, não todas as redações já escritas', () => {
     const resumo = resumoDoPlaybook(runAprovado())
-    expect(resumo.total).toBe(playbookRules.length)
+    // O playbook tem mais linhas que regras vigentes: a R-SUP-023 tem duas
+    // redações. O que a tela mostra é o que está vigente — senão o total do
+    // cabeçalho não bate com a lista logo abaixo dele.
+    expect(resumo.total).toBe(sealPlaybook(PLAYBOOK_VERSION).totalRegras)
+    expect(resumo.total).toBeLessThan(playbookRules.length)
     expect(resumo.ativas + resumo.candidatas).toBe(resumo.total)
     expect(resumo.deterministicas + resumo.generativas).toBe(resumo.total)
     expect(resumo.aplicadasNestaOnda).toBeGreaterThan(0)

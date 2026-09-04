@@ -60,13 +60,34 @@ export interface PlaybookRule {
   readonly playbookVersion: string
   /** Versão em que a regra ENTROU. Pode ser anterior à publicada. */
   readonly introducedIn: string
+  /**
+   * Versão a partir da qual esta redação da regra deixa de valer. Ausente = ainda
+   * vigente. É o que permite uma regra ter mais de uma redação ao longo do tempo
+   * sem duplicar o playbook inteiro a cada versão: KANON sela o que está vigente
+   * na versão pedida, não o que foi publicado exatamente nela.
+   */
+  readonly vigenteAte?: string
+  /**
+   * Parâmetros da regra. O que muda entre duas redações da MESMA regra costuma
+   * ser um parâmetro, não o mecanismo — e é o parâmetro que o agente lê, sempre
+   * através de KANON. Sem isto, corrigir uma regra viraria mexer no código do
+   * agente, que é exatamente o que este projeto afirma não fazer.
+   */
+  readonly parametros?: Readonly<Record<string, string | number | boolean>>
   readonly createdAt: string
   readonly status: RuleStatus
   readonly nature: RuleNature
 }
 
 export const PLAYBOOK_VERSION = 'v1.0.0'
+/**
+ * Versão já selada por KANON e ainda NÃO adotada por esta onda. Existe porque a
+ * correção de uma regra é publicada antes de a onda passar a rodar sobre ela —
+ * adotar é decisão de quem revisa, não efeito colateral de publicar.
+ */
+export const PROXIMA_VERSAO = 'v1.4.0'
 const V1 = PLAYBOOK_VERSION
+const V14 = PROXIMA_VERSAO
 const D = '2026-01-08'
 
 export const playbookRules: readonly PlaybookRule[] = [
@@ -159,10 +180,19 @@ export const playbookRules: readonly PlaybookRule[] = [
     expression: 'chaveNormalizada = maiúsculas(semAcento(razaoSocial)) sem pontuação e sem sufixo societário',
     rationale: 'Chave de comparação para deduplicação. Não vai para o destino — existe só para o cluster.',
     owner: 'Monoda · Data Engineering', playbookVersion: V1, introducedIn: 'v0.9.0', createdAt: D, status: 'active', nature: 'deterministic' },
+  // Duas redações da mesma regra. A primeira corta no caractere 40 e parte palavra
+  // ao meio; a segunda corta no último espaço antes do limite. É o parâmetro
+  // `corte` que muda — o mecanismo é o mesmo, e é ele que o ATLAS lê via KANON.
   { id: 'R-SUP-023', agent: 'ATLAS', object: 'fornecedores', field: 'razaoSocial', type: 'length',
-    expression: 'nameOrg1 = primeiros 40 de razaoSocial ; nameOrg2 = resto (até 40)',
-    rationale: 'NAME_ORG1 do Business Partner tem 40 caracteres. Razão social maior que isso quebra em duas linhas, no lugar certo — cortar no meio de uma palavra é o defeito clássico desta carga.',
-    owner: 'Monoda · Arquitetura S/4HANA', playbookVersion: V1, introducedIn: 'v0.9.0', createdAt: D, status: 'active', nature: 'deterministic' },
+    expression: 'nameOrg1 = primeiros 40 caracteres de razaoSocial ; nameOrg2 = resto (até 40)',
+    rationale: 'NAME_ORG1 do Business Partner tem 40 caracteres. O que passar disso vai para NAME_ORG2, na ordem em que veio.',
+    owner: 'Monoda · Arquitetura S/4HANA', playbookVersion: V1, introducedIn: 'v0.9.0', vigenteAte: V14,
+    parametros: { limite: 40, corte: 'caractere' }, createdAt: D, status: 'active', nature: 'deterministic' },
+  { id: 'R-SUP-023', agent: 'ATLAS', object: 'fornecedores', field: 'razaoSocial', type: 'length',
+    expression: 'nameOrg1 = razaoSocial até o último espaço antes de 40 ; nameOrg2 = resto (até 40)',
+    rationale: 'Cortar no caractere 40 parte palavra ao meio: "…INDUSTRIA E COMERCIO L" + "TDA". O nome é o que identifica o Business Partner no documento fiscal — a quebra tem que cair no espaço, não na letra.',
+    owner: 'Monoda · Arquitetura S/4HANA', playbookVersion: V14, introducedIn: V14,
+    parametros: { limite: 40, corte: 'palavra' }, createdAt: '2026-01-23', status: 'active', nature: 'deterministic' },
   { id: 'R-SUP-024', agent: 'ATLAS', object: 'fornecedores', field: 'cep', type: 'conversion',
     expression: 'cep → digitos(cep)',
     rationale: 'O destino guarda o CEP sem hífen.',
@@ -225,6 +255,10 @@ export const playbookRules: readonly PlaybookRule[] = [
     expression: 'mesmo CPF em SPEs diferentes com retenção diferente → RETER ambos e escalar',
     rationale: 'Duas SPEs tratam o mesmo prestador de forma diferente e a regra correta não está escrita em lugar nenhum. É o caso que obriga a decisão a subir para o cliente em vez de ser resolvida no código.',
     owner: 'Verene · Fiscal', playbookVersion: V1, introducedIn: 'v1.0.0', createdAt: D, status: 'active', nature: 'deterministic' },
+  { id: 'R-SUP-048', agent: 'NOVA', object: 'fornecedores', field: 'nameOrg1', type: 'length',
+    expression: 'nameOrg1 termina no meio de palavra → RETER',
+    rationale: 'A validação do nome quebrado é independente da regra que quebra: se as duas viessem do mesmo raciocínio, o defeito passaria pelas duas. É por isso que quem encontra o corte errado é NOVA, e não ATLAS.',
+    owner: 'Monoda · Arquitetura S/4HANA', playbookVersion: V1, introducedIn: 'v1.0.0', createdAt: D, status: 'active', nature: 'deterministic' },
   { id: 'R-MAT-020', agent: 'NOVA', object: 'materiais-servicos', field: 'ncm', type: 'business',
     expression: 'ncm vazio → RETER',
     rationale: 'Sem NCM não há cálculo de imposto no destino. Não é campo que se preenche por padrão.',
@@ -301,10 +335,17 @@ export const playbookRules: readonly PlaybookRule[] = [
     owner: 'Monoda · Governança', playbookVersion: V1, introducedIn: 'v1.0.0', createdAt: D, status: 'active', nature: 'deterministic' },
 ]
 
-/** Índice por id, para a esteira resolver regra sem varrer a lista. */
+/**
+ * Índice por id. Uma regra pode ter mais de uma redação ao longo das versões; este
+ * mapa guarda a mais recente. Quem precisa da redação vigente numa versão
+ * específica usa `sealPlaybook`/`resolveRule` de KANON, que é quem sabe disso.
+ */
 export const ruleById: ReadonlyMap<string, PlaybookRule> = new Map(
   playbookRules.map((rule) => [rule.id, rule]),
 )
+
+/** Ids distintos. Duas redações da mesma regra contam uma vez só. */
+export const ruleIds: readonly string[] = [...new Set(playbookRules.map((r) => r.id))]
 
 export const deterministicRules = playbookRules.filter((r) => r.nature === 'deterministic')
 /** Propostas de regra: aparecem como candidatas, não executam. */

@@ -13,9 +13,12 @@ real e nada aqui deve sugerir que seja.
 Estas regras valem para todo o projeto e têm precedência sobre conveniência de
 implementação. Na dúvida entre cumprir a regra e entregar mais rápido, cumpra a regra.
 
-1. **Nenhuma chamada de rede** exceto a rota explicitamente autorizada no P9. Sem `fetch`,
+1. **Nenhuma chamada de rede** exceto **uma**: `src/net/rule-hypothesis.ts`, que chama
+   `/api/regra-candidata` na tela de regra candidata. Fora dela: sem `fetch`,
    `XMLHttpRequest`, `WebSocket`, `EventSource`, sem CDN, sem webfont externa, sem
-   analytics, sem imagem hospedada fora do repositório.
+   analytics, sem imagem hospedada fora do repositório. A exceção é aberta **por arquivo**
+   em `eslint.config.js`, e há teste que falha se `fetch` aparecer em qualquer outro
+   arquivo de produção.
 2. **Todo texto visível ao usuário vive em `src/copy/strings.ts`.** Nunca hardcode string
    em JSX — nem rótulo, nem placeholder, nem tooltip, nem mensagem de erro.
 3. **Todo dado vive em `src/data/`.** Componentes nunca inventam dado inline.
@@ -140,10 +143,22 @@ O motor torna isso literal, não retórico.
 duplicata, um a um), o 7 (cada exceção decidida) e os 8 e 9 (pacote e reconciliação, pelo data
 owner). Sem assinatura o passo seguinte nem roda — sai como `blocked`/`not-reached`.
 
+**A regra é versionada, não editada.** `sealPlaybook` seleciona por **vigência**, não por
+igualdade: uma regra vale de `introducedIn` até `vigenteAte` (exclusive), então a mesma regra
+pode ter mais de uma redação sem duplicar o playbook a cada versão. `R-SUP-023` tem duas — a da
+v0.9.0 corta `NAME_ORG1` no caractere 40, a da v1.4.0 corta no último espaço antes dele. O que
+muda entre elas é o **parâmetro** `corte`, e o agente o lê por `parametroDaRegra`, que passa pelo
+mesmo `resolveRule`: nenhum agente alcança parâmetro sem o guarda. Corrigir uma regra não é mexer
+no código do agente — é publicar uma redação nova numa versão nova.
+
 **Toda assinatura carrega a versão do playbook.** `Signature` registra quem, quando e sobre qual
 versão — e assinatura dada sobre outra versão não vale para a corrente. Sem esse campo, "revisado
 e assinado" não diz o que foi revisado: a regra pode ter mudado depois. Trocar de versão (ou de
-SPE) zera as assinaturas na store, porque aprovação não atravessa recorte nem versão.
+SPE) zera as assinaturas na store, porque aprovação não atravessa recorte nem versão. A exceção é
+`publicarVersao`, que **carrega** para a versão nova as assinaturas cujo artefato não mudou,
+marcando-as com `revalidadaEm` — a trilha mostra sobre qual versão foi assinada E em qual foi
+revalidada. Pacote e reconciliação caem sempre: o artefato mudou de checksum, e assinatura dada
+sobre outro conteúdo não vale.
 
 **Determinismo.** O estado final de um registro é *derivado* das assinaturas, nunca acumulado por
 mutação ao longo dos passos: acumular dava ordem-dependência. Não há `Math.random` nem `Date.now`
@@ -253,6 +268,50 @@ percentual: o valor do contrato não vive no protótipo, e número inventado ao 
 real seria pior do que não mostrar valor. G0, G3 e G5 aparecem sem parcela — nem todo ponto de
 decisão é ponto de faturamento, e um Gate sem dinheiro atrás continua bloqueante.
 
+### Os dois momentos
+
+**Momento 1 — velocidade, em `/playbook`.** Na v1.0.0 a `R-SUP-023` corta o nome no caractere 40
+e parte palavra ao meio em **8 das 42 razões sociais**. Quem encontra é a `R-SUP-048`, uma
+validação de NOVA independente da regra que quebra — se as duas viessem do mesmo raciocínio, o
+defeito passaria pelas duas. O defeito é `DEF-TRF-02`, origem `transformation`, **crítico**: os
+registros saem retidos e a fila diz que a ação certa não é aprovar o registro, é corrigir a
+regra. No detalhe da regra aparece a correção proposta com o diff do parâmetro
+(`corte: caractere → palavra`) e o botão que publica a v1.4.0. Publicar dispara `publicarVersao`,
+e o painel de **Propagação** — a única animação do projeto — mostra o caminho: regra corrigida →
+playbook selado (checksum novo) → onda regerada (8 retocados, 8 exceções fechadas, 7 retidos de
+volta) → pacote refeito (`PKG-todas-v1.4.0`) → manifest novo aguardando reassinatura no G4. Todo
+número sai de `src/engine/regeneration.ts`, que diffa os dois runs. A animação não simula
+trabalho: a recomputação é instantânea, e a nota da seção diz isso — o que ela mostra é o
+caminho, não a duração.
+
+**Momento 2 — contenção, em `/review/candidate`.** As duas duplas de PF com retenção divergente
+(`F1009`/`F3007` no INSS, `F2008`/`F4007` na alíquota de ISS), lado a lado, com o que é idêntico
+nos dois listado embaixo — é o que descarta a explicação fácil. A frequência é derivada, não
+digitada. A regra candidata é a `R-SUP-033`, que **não executa**: `resolveRule` recusa candidata.
+Ao lado dela, a hipótese em linguagem natural, e a frase que fecha o argumento em destaque
+próprio: *um agente consegue evidenciar que uma regra provavelmente existe; ele não consegue
+confirmar que a regra está correta*. As três ações — confirmar, rejeitar, reformular — registram
+a decisão do dono nomeado (Carlos Menezes, Verene · Fiscal) e **não promovem a regra**: promover é
+ato de KANON, numa versão nova. `R-SUP-047` passou a reter **os dois lados** de cada dupla, como
+a expressão da regra sempre disse; antes retinha só o lado etiquetado no extrato.
+
+### A chamada de rede
+
+A hipótese do Momento 2 vem de uma chamada real à API da Anthropic (`claude-sonnet-4-6`). A
+chave **nunca entra no bundle**: fica em `ANTHROPIC_API_KEY` (sem prefixo `VITE_`), o browser
+chama `/api/regra-candidata` na mesma origem, e o plugin de `vite.config.ts` — montado em `dev` e
+em `preview` — faz a chamada pelo SDK oficial.
+
+O fallback é requisito, não conforto. Sem chave, sem rede, com timeout, com JSON malformado, ou
+com o `dist/` servido como estático (endpoint inexistente), a tela usa a resposta pré-gravada de
+`src/data/candidate-hypothesis.ts`. A rota responde **200 mesmo quando não tem hipótese**
+(`disponivel: false`): ausência não é erro, e um 5xx pintaria o console de vermelho na frente do
+cliente. `pedirHipotese` nunca lança.
+
+O texto do modelo é **apresentação e só**: não entra na esteira, no checksum nem no pacote. Há
+teste garantindo que existe um único arquivo com `fetch`, que nem `src/engine/` nem `src/data/`
+importam `src/net/`, e que nenhuma fonte de produção fala com `api.anthropic.com` direto.
+
 **As telas se conectam pelo motor.** O checkpoint 1 exige duas assinaturas distintas: o SAP
 SME aprova tecnicamente e o data owner assina no Gate 1. Enquanto faltar qualquer uma, `/mapping`
 mostra o aviso e a esteira para no passo 3 — e o `/playbook` mostra as regras de ATLAS e NOVA com
@@ -262,6 +321,9 @@ tira um da fila de recusa; percorrendo as filas e assinando G4 a G7, os oito fec
 comercial passa de 0% para 100% liberado.
 
 ## Comandos
+
+Para a chamada ao vivo do Momento 2, copie `.env.example` para `.env.local` e preencha
+`ANTHROPIC_API_KEY`. Sem isso a demonstração roda igual, com a resposta de referência.
 
 ```bash
 npm run dev        # dev server em http://localhost:5173

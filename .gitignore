@@ -9,3 +9,8 @@ npm-debug.log*
 .idea
 .vscode/*
 !.vscode/extensions.json
+
+# Chaves. `*.local` já cobria .env.local por acidente; isto cobre de propósito.
+.env
+.env.*
+!.env.example

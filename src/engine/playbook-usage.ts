@@ -5,6 +5,7 @@
  * aparece na trilha de nenhum registro, ela não foi aplicada, e a tela mostra
  * zero. É o que transforma "a regra existe" em "a regra rodou".
  */
+import { sealPlaybook } from '@/engine/kanon'
 import { PLAYBOOK_VERSION, playbookRules } from '@/data/playbook'
 import type { PipelineRun } from '@/engine/pipeline'
 
@@ -52,14 +53,23 @@ export interface ResumoPlaybook {
   readonly aplicadasNestaOnda: number
 }
 
+/**
+ * Contagem da versão VIGENTE, não do arquivo inteiro.
+ *
+ * Uma regra pode ter mais de uma redação ao longo das versões, e contar todas
+ * daria um total que não bate com a lista da tela — número que não fecha na
+ * frente do cliente custa caro. Quem sabe o que está vigente é o selo de KANON.
+ */
 export function resumoDoPlaybook(run: PipelineRun): ResumoPlaybook {
+  const versao = run.playbookVersion || PLAYBOOK_VERSION
+  const vigentes = sealPlaybook(versao).rules
   return {
-    versao: run.playbookVersion || PLAYBOOK_VERSION,
-    total: playbookRules.length,
-    ativas: playbookRules.filter((r) => r.status === 'active').length,
-    candidatas: playbookRules.filter((r) => r.status === 'candidate').length,
-    deterministicas: playbookRules.filter((r) => r.nature === 'deterministic').length,
-    generativas: playbookRules.filter((r) => r.nature === 'generative').length,
+    versao,
+    total: vigentes.length,
+    ativas: vigentes.filter((r) => r.status === 'active').length,
+    candidatas: vigentes.filter((r) => r.status === 'candidate').length,
+    deterministicas: vigentes.filter((r) => r.nature === 'deterministic').length,
+    generativas: vigentes.filter((r) => r.nature === 'generative').length,
     aplicadasNestaOnda: regrasAplicadas(run).length,
   }
 }

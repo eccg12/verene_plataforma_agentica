@@ -61,6 +61,13 @@ export default tseslint.config(
     rules: { 'no-restricted-properties': 'off' },
   },
   {
+    // A ÚNICA exceção da regra 1: a chamada real à API na tela de regra
+    // candidata. A exceção é por arquivo, e o arquivo é o único de `src/net/` —
+    // a regra global segue valendo para todo o resto do projeto.
+    files: ['src/net/rule-hypothesis.ts'],
+    rules: { 'no-restricted-globals': 'off' },
+  },
+  {
     files: ['vite.config.ts', 'eslint.config.js'],
     languageOptions: { globals: globals.node },
   },

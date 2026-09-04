@@ -24,6 +24,12 @@ export const SAP_TERMS = [
   'XML',
 ] as const
 
+/**
+ * Nomes próprios e termos da única chamada de rede do projeto. Não se traduzem
+ * nem se aportuguesam.
+ */
+export const MODEL_TERMS = ['Anthropic', 'Claude', 'API'] as const
+
 /** Nomes de artefatos contratuais e do processo de entrega. */
 export const CONTRACT_ARTIFACTS = [
   'Gate',
@@ -55,6 +61,7 @@ export const AGENT_NAMES: readonly string[] = [
 export const PRESERVED_TERMS: readonly string[] = [
   ...SAP_TERMS,
   ...CONTRACT_ARTIFACTS,
+  ...MODEL_TERMS,
   ...AGENT_NAMES,
 ]
 

@@ -27,13 +27,13 @@ import {
 } from '@/data/defect-taxonomy'
 import { PLAYBOOK_VERSION } from '@/data/playbook'
 import { buscarMunicipio, normalizarNome } from '@/data/reference/municipios-ibge'
-import type { NasajonSupplier } from '@/data/source/nasajon-suppliers'
+import { nasajonSuppliers, type NasajonSupplier } from '@/data/source/nasajon-suppliers'
 import { existingSuppliers } from '@/data/target/existing-base'
 import { requiredFields } from '@/data/target/tenant-config'
 import type { PlantedDefectKind, SpeId } from '@/data/types'
 import { isValidCnpj, isValidCpf, onlyDigits } from '@/engine/br-documents'
 import { MINUTE_MS, simInstant } from '@/engine/clock'
-import { resolveRule, sealPlaybook } from '@/engine/kanon'
+import { parametroDaRegra, resolveRule, sealPlaybook } from '@/engine/kanon'
 import { hashSeed } from '@/engine/random'
 
 // ============================================================ passos
@@ -86,6 +86,15 @@ export interface Signature {
    * regra, e mudar a regra não carrega a aprovação anterior junto.
    */
   readonly playbookVersion: string
+  /**
+   * Versão para a qual esta assinatura foi CARREGADA sem ser dada de novo.
+   *
+   * Só acontece quando o artefato que ela cobre não mudou na nova versão — a
+   * correção de uma regra de ATLAS não mexe no de-para, então a aprovação do
+   * de-para continua cobrindo o que cobria. Fica registrado em vez de silencioso:
+   * a trilha mostra sobre qual versão foi assinada E em qual foi revalidada.
+   */
+  readonly revalidadaEm?: string
   readonly note: string | null
 }
 
@@ -325,6 +334,12 @@ interface Working {
   reuseTarget: string | null
   /** Chave de comparação derivada no TRANSFORM. */
   chaveNormalizada: string
+  /**
+   * A razão social de fato quebrada em NAME_ORG1/NAME_ORG2. Num cluster o nome
+   * do sobrevivente pode vir de outro membro, então guardar o que foi quebrado é
+   * o que permite a NOVA validar a quebra sem adivinhar de onde ela veio.
+   */
+  nomeQuebrado: string
 }
 
 const EMPTY_TARGET: BusinessPartnerTarget = {
@@ -447,12 +462,49 @@ function chaveDedup(razaoSocial: string): string {
   return normalizarNome(razaoSocial).replace(SUFIXOS, '').replace(/[^A-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim()
 }
 
-/** Quebra a razão social nos 40 caracteres do NAME_ORG1 sem cortar palavra ao meio. */
-export function splitNome(nome: string, limite = 40): readonly [string, string | null] {
+/** Onde o corte cai: no caractere do limite, ou no último espaço antes dele. */
+export type ModoDeCorte = 'caractere' | 'palavra'
+
+/**
+ * Quebra a razão social no limite do NAME_ORG1.
+ *
+ * O MODO vem do parâmetro da regra R-SUP-023, lido em KANON — não é escolha do
+ * agente. `caractere` corta no limite exato e pode partir palavra ao meio;
+ * `palavra` recua até o último espaço. É a diferença entre as duas redações da
+ * regra, e é o que a correção da v1.4.0 muda.
+ */
+export function splitNome(
+  nome: string,
+  limite = 40,
+  modo: ModoDeCorte = 'palavra',
+): readonly [string, string | null] {
   if (nome.length <= limite) return [nome, null]
-  const corte = nome.lastIndexOf(' ', limite)
-  const at = corte > 0 ? corte : limite
+  const espaco = nome.lastIndexOf(' ', limite)
+  const at = modo === 'palavra' && espaco > 0 ? espaco : limite
   return [nome.slice(0, at).trim(), nome.slice(at).trim().slice(0, limite) || null]
+}
+
+/** `true` quando a quebra partiu uma palavra ao meio. É o que a R-SUP-048 procura. */
+export function cortouPalavra(nome: string, org1: string): boolean {
+  if (org1.length >= nome.length) return false
+  return nome[org1.length] !== ' ' && org1.at(-1) !== ' '
+}
+
+/**
+ * Contraparte com o mesmo documento em outra SPE e retenção diferente.
+ *
+ * Derivado do dado, não da etiqueta: `_plantedDefect` marca só um lado da dupla,
+ * e a R-SUP-047 diz para reter os dois. Cruzar por documento é o que faz a
+ * implementação dizer o mesmo que a regra publicada.
+ */
+export function divergenciaDeRetencao(s: NasajonSupplier): NasajonSupplier | null {
+  const doc = onlyDigits(s.cnpjCpf)
+  const mesmos = nasajonSuppliers.filter((o) => o.codigo !== s.codigo && onlyDigits(o.cnpjCpf) === doc)
+  const divergente = mesmos
+    .filter((o) => o.spe !== s.spe)
+    .filter((o) => JSON.stringify(o.retencoes) !== JSON.stringify(s.retencoes))
+    .sort((a, b) => (a.codigo < b.codigo ? -1 : 1))
+  return divergente[0] ?? null
 }
 
 const camposPreenchidos = (s: NasajonSupplier): number =>
@@ -479,6 +531,7 @@ export function runPipeline(input: PipelineInput): PipelineRun {
     mergedInto: null,
     reuseTarget: null,
     chaveNormalizada: '',
+    nomeQuebrado: '',
   }))
 
   const stepResults: StepResult[] = []
@@ -637,6 +690,10 @@ export function runPipeline(input: PipelineInput): PipelineRun {
 
   // ---------- 4 TRANSFORM (ATLAS) ----------
   const s4 = stepOf('transform')
+  // Os parâmetros da quebra do nome vêm da regra publicada, resolvida em KANON.
+  // O agente não os escolhe, não os adivinha e não os traz do próprio código.
+  const limiteNome = Number(parametroDaRegra('R-SUP-023', 'ATLAS', version, 'limite'))
+  const modoDeCorte = String(parametroDaRegra('R-SUP-023', 'ATLAS', version, 'corte')) as ModoDeCorte
   for (const rec of work) {
     const s = rec.source
     const digitos = onlyDigits(s.cnpjCpf)
@@ -659,9 +716,10 @@ export function runPipeline(input: PipelineInput): PipelineRun {
       'Chave de comparação; não vai para o destino.')
     marcar('transform', 'R-SUP-022')
 
-    const [org1, org2] = splitNome(s.razaoSocial)
+    rec.nomeQuebrado = s.razaoSocial
+    const [org1, org2] = splitNome(s.razaoSocial, limiteNome, modoDeCorte)
     apply(rec, s4, 'R-SUP-023', version, 'nameOrg1', s.razaoSocial, org1, { nameOrg1: org1, nameOrg2: org2 },
-      org2 === null ? null : `Excedeu 40 caracteres; quebrado em NAME_ORG2: "${org2}".`)
+      org2 === null ? null : `Excedeu ${limiteNome} caracteres; quebrado em NAME_ORG2: "${org2}".`)
     marcar('transform', 'R-SUP-023')
 
     const cep = onlyDigits(s.cep)
@@ -762,7 +820,8 @@ export function runPipeline(input: PipelineInput): PipelineRun {
     if (decisao !== 'approved') continue
     for (const rec of work.filter((r) => r.clusterId === cluster.id)) {
       if (rec.source.codigo === cluster.sobreviventePropostoCodigo) {
-        rec.draft = { ...rec.draft, nameOrg1: splitNome(cluster.razaoSocialProposta)[0] }
+        rec.nomeQuebrado = cluster.razaoSocialProposta
+        rec.draft = { ...rec.draft, nameOrg1: splitNome(cluster.razaoSocialProposta, limiteNome, modoDeCorte)[0] }
       } else {
         rec.mergedInto = cluster.sobreviventePropostoCodigo
       }
@@ -854,11 +913,29 @@ export function runPipeline(input: PipelineInput): PipelineRun {
       }
     }
 
-    const divergencia = s._plantedDefect.find((d) => d.kind === 'retencao-pf-divergente')
-    if (divergencia) {
-      apply(rec, s7, 'R-SUP-047', version, 'retencoes', null, 'divergente', null, divergencia.note)
+    // A regra diz "RETER AMBOS": a retenção não pode depender de qual lado da
+    // dupla foi marcado no extrato. Deriva-se do cruzamento por documento —
+    // divergiu com o mesmo CPF em outra SPE, os dois ficam retidos.
+    const contraparte = divergenciaDeRetencao(rec.source)
+    if (contraparte) {
+      const nota =
+        rec.source._plantedDefect.find((d) => d.kind === 'retencao-pf-divergente')?.note ??
+        `Mesmo CPF de ${contraparte.codigo} (${contraparte.spe}), com retenção diferente. Nenhuma configuração do tenant decide qual está certa.`
+      apply(rec, s7, 'R-SUP-047', version, 'retencoes', null, 'divergente', null, nota)
       marcar('validate', 'R-SUP-047')
-      raise(rec, 'DEF-TGT-04', 'R-SUP-047', version, divergencia.note)
+      raise(rec, 'DEF-TGT-04', 'R-SUP-047', version, nota)
+    }
+
+    // R-SUP-048 — a validação da quebra do nome. É de NOVA, não de ATLAS: se a
+    // validação viesse do mesmo raciocínio que quebrou, o defeito passaria pelas
+    // duas. Na v1.0.0 ela acha oito; na v1.4.0, nenhum.
+    const org1 = rec.draft.nameOrg1
+    if (org1 !== null && cortouPalavra(rec.nomeQuebrado, org1)) {
+      const org2 = rec.draft.nameOrg2 ?? ''
+      const nota = `"${rec.nomeQuebrado}" quebrou em "${org1}" + "${org2}": o corte caiu no meio da palavra.`
+      apply(rec, s7, 'R-SUP-048', version, 'nameOrg1', rec.nomeQuebrado, org1, null, nota)
+      marcar('validate', 'R-SUP-048')
+      raise(rec, 'DEF-TRF-02', 'R-SUP-048', version, nota)
     }
   }
   fechar('validate', work.length)

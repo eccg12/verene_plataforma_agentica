@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { LIMITE_ARQUIVO_MB, LIMITE_REGISTROS_POR_PARTE, simulacoesCockpit } from '@/data/delivery'
 import { verificacoesFiori } from '@/data/fiori-checks'
 import { criteriosDeAceite, gateById, gateIds, gates } from '@/data/gates'
-import { PLAYBOOK_VERSION } from '@/data/playbook'
+import { PLAYBOOK_VERSION, PROXIMA_VERSAO } from '@/data/playbook'
 import { scopeObjects } from '@/data/scope'
 import { nasajonContracts } from '@/data/source/nasajon-contracts'
 import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
@@ -23,18 +23,19 @@ const sig: Signature = {
   playbookVersion: PLAYBOOK_VERSION, note: null,
 }
 
-function runCompleto() {
-  const base: Approvals = { ...emptyApprovals, mapeamentoSme: sig, mapeamento: sig }
-  const p1 = runPipeline({ records: nasajonSuppliers, approvals: base })
-  const comClusters: Approvals = { ...base, clusters: Object.fromEntries(p1.clusters.map((c) => [c.id, sig])) }
-  const p2 = runPipeline({ records: nasajonSuppliers, approvals: comClusters })
+function runCompleto(playbookVersion: string = PLAYBOOK_VERSION) {
+  const s: Signature = { ...sig, playbookVersion }
+  const base: Approvals = { ...emptyApprovals, mapeamentoSme: s, mapeamento: s }
+  const p1 = runPipeline({ records: nasajonSuppliers, approvals: base, playbookVersion })
+  const comClusters: Approvals = { ...base, clusters: Object.fromEntries(p1.clusters.map((c) => [c.id, s])) }
+  const p2 = runPipeline({ records: nasajonSuppliers, approvals: comClusters, playbookVersion })
   const tudo: Approvals = {
     ...comClusters,
-    excecoes: Object.fromEntries(p2.exceptions.map((e) => [e.id, sig])),
-    pacote: sig,
-    reconciliacao: sig,
+    excecoes: Object.fromEntries(p2.exceptions.map((e) => [e.id, s])),
+    pacote: s,
+    reconciliacao: s,
   }
-  return runPipeline({ records: nasajonSuppliers, approvals: tudo })
+  return runPipeline({ records: nasajonSuppliers, approvals: tudo, playbookVersion })
 }
 
 describe('gates e critérios de aceite', () => {
@@ -250,22 +251,38 @@ describe('placar dos critérios de aceite', () => {
     expect(placar.find((r) => r.criterio.id === 'CA-02')?.medido).toBe(100)
   })
 
-  it('os critérios de defeito medem só transformation, e o teto é respeitado', () => {
-    const run = runCompleto()
-    const placar = placarDeAceite(run)
-    const criticos = placar.find((r) => r.criterio.id === 'CA-03')
-    const naoCriticos = placar.find((r) => r.criterio.id === 'CA-04')
-    const transformacao = registroDeDefeitos(run).find((r) => r.origin === 'transformation')
+  it('os critérios de defeito medem só transformation, e a correção da regra os zera', () => {
+    // v1.0.0: a quebra do nome corta palavra ao meio. É defeito de transformação,
+    // a única origem pela qual a Monoda responde — e CA-03 reprova por isso.
+    const antes = runCompleto()
+    const placarAntes = placarDeAceite(antes)
+    const transformacaoAntes = registroDeDefeitos(antes).find((r) => r.origin === 'transformation')
+    const ca03Antes = placarAntes.find((r) => r.criterio.id === 'CA-03')
 
-    expect(criticos?.medido).toBe(transformacao?.criticos)
-    expect(criticos?.atende).toBe(true)
-    expect(naoCriticos?.medido).toBeLessThanOrEqual(5)
-    expect(naoCriticos?.atende).toBe(true)
+    expect(transformacaoAntes?.criticos).toBeGreaterThan(0)
+    expect(transformacaoAntes?.monodaResponsavel).toBe(true)
+    expect(ca03Antes?.medido).toBe(transformacaoAntes?.criticos)
+    expect(ca03Antes?.atende).toBe(false)
 
-    // e há defeito de outras origens: o placar da Monoda ficar verde não é
-    // porque não existe defeito, é porque o defeito é de outro dono
-    const total = registroDeDefeitos(run).reduce((a, r) => a + r.total, 0)
-    expect(total).toBeGreaterThan(0)
+    // v1.4.0: a regra corrigida zera a origem transformation, e só ela.
+    const depois = runCompleto(PROXIMA_VERSAO)
+    const placarDepois = placarDeAceite(depois)
+    const transformacaoDepois = registroDeDefeitos(depois).find((r) => r.origin === 'transformation')
+    const ca03Depois = placarDepois.find((r) => r.criterio.id === 'CA-03')
+    const ca04Depois = placarDepois.find((r) => r.criterio.id === 'CA-04')
+
+    expect(transformacaoDepois?.total).toBe(0)
+    expect(ca03Depois?.medido).toBe(0)
+    expect(ca03Depois?.atende).toBe(true)
+    expect(ca04Depois?.medido).toBe(0)
+    expect(ca04Depois?.atende).toBe(true)
+
+    // e continua havendo defeito das outras três origens: o placar da Monoda
+    // ficar verde não é porque não existe defeito, é porque o dono é outro.
+    const deTerceiros = registroDeDefeitos(depois)
+      .filter((r) => !r.monodaResponsavel)
+      .reduce((a, r) => a + r.total, 0)
+    expect(deTerceiros).toBeGreaterThan(0)
   })
 })
 
