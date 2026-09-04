@@ -4,6 +4,11 @@ export const paths = {
   missionControl: '/mission-control',
   playbook: '/playbook',
   mapping: '/mapping',
+  /** Base da rota de rastreabilidade; o id do registro vem depois. */
+  recordBase: '/record',
+  record: '/record/:id',
+  duplicates: '/review/duplicates',
+  exceptions: '/review/exceptions',
   styleguide: '/styleguide',
 } as const
 

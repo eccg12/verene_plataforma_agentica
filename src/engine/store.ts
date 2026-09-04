@@ -30,6 +30,18 @@ import {
 
 export type SpeFilter = SpeId | 'todas'
 
+/**
+ * Run sobre as quatro SPEs, com as assinaturas correntes.
+ *
+ * As filas de revisão são cross-SPE por natureza: duplicata só existe entre
+ * SPEs, e a fila de exceção precisa ver o escopo inteiro. Derivar aqui evita
+ * que abrir a fila mexa no recorte das outras telas — e as assinaturas são as
+ * mesmas, então decidir na fila vale para todo o resto.
+ */
+export function runDeTodasSpes(playbookVersion: string, approvals: Approvals): PipelineRun {
+  return runPipeline({ records: nasajonSuppliers, playbookVersion, approvals, spe: 'todas' })
+}
+
 export interface SimulationState {
   readonly spe: SpeFilter
   /** Ciclo corrente, exibido na barra superior e usado para recortar a grade. */
@@ -47,6 +59,12 @@ export interface SimulationState {
   /** Assinatura do data owner da Verene no Gate 1. */
   approveMapping: (decision: Decision, note?: string) => void
   confirmCluster: (clusterId: string, decision: Decision, note?: string) => void
+  /**
+   * Dividir o cluster: os cadastros não são a mesma entidade e seguem
+   * separados. Decisão distinta de "rejeitar" no que fica registrado, ainda que
+   * o efeito em cluster de dois membros seja o mesmo — nenhum merge acontece.
+   */
+  splitCluster: (clusterId: string, note?: string) => void
   decideException: (exceptionId: string, decision: Decision, note?: string) => void
   approvePackage: (decision: Decision, note?: string) => void
   approveReconciliation: (decision: Decision, note?: string) => void
@@ -140,6 +158,21 @@ export const useSimulation = create<SimulationState>((set, get) => {
           clusters: {
             ...get().approvals.clusters,
             [clusterId]: sign(signatories.duplicatas, decision, note),
+          },
+        },
+      }),
+
+    splitCluster: (clusterId, note) =>
+      recomputar({
+        approvals: {
+          ...get().approvals,
+          clusters: {
+            ...get().approvals.clusters,
+            [clusterId]: sign(
+              signatories.duplicatas,
+              'rejected',
+              note ?? 'Cluster dividido: os cadastros seguem separados.',
+            ),
           },
         },
       }),

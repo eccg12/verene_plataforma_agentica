@@ -32,7 +32,7 @@ import { existingSuppliers } from '@/data/target/existing-base'
 import { requiredFields } from '@/data/target/tenant-config'
 import type { PlantedDefectKind, SpeId } from '@/data/types'
 import { isValidCnpj, isValidCpf, onlyDigits } from '@/engine/br-documents'
-import { simInstant } from '@/engine/clock'
+import { MINUTE_MS, simInstant } from '@/engine/clock'
 import { resolveRule, sealPlaybook } from '@/engine/kanon'
 import { hashSeed } from '@/engine/random'
 
@@ -129,6 +129,12 @@ export interface CheckpointState {
 
 export interface TrailEntry {
   readonly seq: number
+  /**
+   * Instante da aplicação. Derivado do epoch fixo da simulação: cada passo
+   * avança 15 minutos e cada aplicação dentro do passo, 3 segundos. Usar o
+   * relógio da máquina quebraria a reprodutibilidade.
+   */
+  readonly at: string
   readonly step: StepId
   readonly agent: AgentName
   readonly ruleId: string
@@ -357,8 +363,10 @@ function apply(
 ): void {
   const rule = resolveRule(ruleId, step.agent, version)
   if (patch) rec.draft = { ...rec.draft, ...patch }
+  const seq = rec.trail.length + 1
   rec.trail.push({
-    seq: rec.trail.length + 1,
+    seq,
+    at: simInstant(step.n * 15 * MINUTE_MS + seq * 3_000).toISOString(),
     step: step.id,
     agent: rule.agent,
     ruleId: rule.id,

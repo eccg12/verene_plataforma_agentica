@@ -184,7 +184,27 @@ shell escuro. São evidência, não operação.
   para a divergência do padrão SAP que a afeta. Não há tabela paralela mantida à mão, e há teste
   garantindo que toda regra, todo domínio e toda divergência citados existem de fato.
 
-**As duas telas se conectam pelo motor.** O checkpoint 1 exige duas assinaturas distintas: o SAP
+`/record/:id` (escura) mostra a rastreabilidade **em nível de campo**: valor de origem, cada
+regra aplicada com id clicável, versão do playbook e instante, e o valor final — ou o estado
+retido. Dois casos navegáveis: um fornecedor e uma **linha de contrato**, que roda pela MESMA
+esteira, com o mesmo guarda de KANON (`src/engine/contract-pipeline.ts`). O id da linha usa `~`
+e não `#`: `#` viraria fragmento de URL e sumiria do path.
+
+`/review/duplicates` (ATLAS) traz o racional do match sinal a sinal, com o peso de cada um — o
+score é a soma dos pesos que conferem, não um número solto. **O merge nunca é automático:** as
+ações são confirmar, rejeitar ou dividir, uma a uma, e o código aposentado mantém
+cross-reference visível depois do merge. Os dois cadastros que já existem no tenant aparecem em
+seção própria, derivada do cruzamento de documento — não do resultado da esteira, senão sumiriam
+justamente enquanto o checkpoint segura.
+
+`/review/exceptions` (NOVA) classifica cada retenção em técnica (vai ao SAP SME) ou de negócio
+(vai ao data owner), com dono nomeado, prazo e estado. **Não existe "aplicar valor padrão"** em
+lugar nenhum da tela, de propósito. O enriquecimento do NOVA mostra cada valor proposto com a
+**evidência anexada** — tabela do IBGE, item da LC 116, material equivalente já classificado.
+Onde não há fonte que sustente o valor, não há proposta: CNAE aparece como "sem proposta" com o
+motivo, e é esse o caso que prova a regra.
+
+**As telas se conectam pelo motor.** O checkpoint 1 exige duas assinaturas distintas: o SAP
 SME aprova tecnicamente e o data owner assina no Gate 1. Enquanto faltar qualquer uma, `/mapping`
 mostra o aviso e a esteira para no passo 3 — e o `/playbook` mostra as regras de ATLAS e NOVA com
 zero registros. Assinadas as duas, as contagens sobem de 12 para 23 regras aplicadas. O aviso não

@@ -47,12 +47,25 @@ export const qualityDimensions = [
 ] as const
 export type QualityDimension = (typeof qualityDimensions)[number]
 
+/**
+ * Para quem a exceção é roteada na fila do NOVA.
+ *
+ * `tecnica` é decisão de configuração ou de estrutura: vai para o SAP SME.
+ * `negocio` é decisão sobre o significado do dado: vai para o data owner da
+ * Verene. A separação existe porque as duas filas têm gente diferente e tempo
+ * de resposta diferente — misturar as duas é o que trava projeto.
+ */
+export type ClasseExcecao = 'tecnica' | 'negocio'
+
 export interface DefectType {
   readonly id: string
   readonly origin: DefectOriginId
   readonly nome: string
   readonly severidade: Severity
   readonly dimensao: QualityDimension
+  readonly classe: ClasseExcecao
+  /** Prazo de resposta em dias úteis, a contar da abertura. */
+  readonly prazoDias: number
   readonly descricao: string
   /** Ação que a esteira toma ao encontrar. */
   readonly acao: string
@@ -160,82 +173,82 @@ export const defectOrigins: readonly DefectOrigin[] = [
 
 export const defectTypes: readonly DefectType[] = [
   // ---------- source-extract ----------
-  { id: 'DEF-SRC-01', origin: 'source-extract', nome: 'CNPJ com dígito verificador inválido', severidade: 'critical', dimensao: 'validade',
+  { id: 'DEF-SRC-01', origin: 'source-extract', nome: 'CNPJ com dígito verificador inválido', severidade: 'critical', dimensao: 'validade', classe: 'negocio', prazoDias: 3,
     descricao: 'O número não fecha na aritmética do dígito verificador. Não é erro de máscara — é número errado.',
     acao: 'Reter o registro. Não há correção automática possível.',
     roteadoPara: 'Verene · Suprimentos', plantedKind: 'cnpj-dv-invalido' },
-  { id: 'DEF-SRC-02', origin: 'source-extract', nome: 'Cadastro duplicado entre SPEs', severidade: 'critical', dimensao: 'unicidade',
+  { id: 'DEF-SRC-02', origin: 'source-extract', nome: 'Cadastro duplicado entre SPEs', severidade: 'critical', dimensao: 'unicidade', classe: 'negocio', prazoDias: 5,
     descricao: 'Mesmo documento cadastrado em mais de uma SPE, com grafia divergente da razão social.',
     acao: 'Formar cluster e reter até confirmação humana, um cluster por vez.',
     roteadoPara: 'Verene · Suprimentos', plantedKind: 'duplicata-grafia' },
-  { id: 'DEF-SRC-03', origin: 'source-extract', nome: 'CNAE ausente', severidade: 'critical', dimensao: 'completude',
+  { id: 'DEF-SRC-03', origin: 'source-extract', nome: 'CNAE ausente', severidade: 'critical', dimensao: 'completude', classe: 'negocio', prazoDias: 5,
     descricao: 'Campo em branco no extrato, exigido pelo tenant.',
     acao: 'Reter. A derivação de CNAE é regra candidata, não executa.',
     roteadoPara: 'Verene · Fiscal', plantedKind: 'cnae-ausente' },
-  { id: 'DEF-SRC-04', origin: 'source-extract', nome: 'Contrato com fase fiscal pendente', severidade: 'critical', dimensao: 'validade',
+  { id: 'DEF-SRC-04', origin: 'source-extract', nome: 'Contrato com fase fiscal pendente', severidade: 'critical', dimensao: 'validade', classe: 'negocio', prazoDias: 10,
     descricao: 'Contrato ainda não encerrou a fase fiscal no legado.',
     acao: 'Reter. Migrar criaria compromisso sem lastro fiscal.',
     roteadoPara: 'Verene · Fiscal', plantedKind: 'fase-fiscal-pendente' },
-  { id: 'DEF-SRC-05', origin: 'source-extract', nome: 'Cabeçalho não reconcilia com as linhas', severidade: 'critical', dimensao: 'precisao',
+  { id: 'DEF-SRC-05', origin: 'source-extract', nome: 'Cabeçalho não reconcilia com as linhas', severidade: 'critical', dimensao: 'precisao', classe: 'negocio', prazoDias: 5,
     descricao: 'A soma das linhas difere do valor original do contrato.',
     acao: 'Reter até a origem explicar a diferença.',
     roteadoPara: 'Verene · Suprimentos', plantedKind: 'saldo-diverge-do-original' },
-  { id: 'DEF-SRC-06', origin: 'source-extract', nome: 'NCM ausente', severidade: 'critical', dimensao: 'completude',
+  { id: 'DEF-SRC-06', origin: 'source-extract', nome: 'NCM ausente', severidade: 'critical', dimensao: 'completude', classe: 'negocio', prazoDias: 5,
     descricao: 'Material sem classificação fiscal.',
     acao: 'Reter. Sem NCM não há cálculo de imposto no destino.',
     roteadoPara: 'Verene · Fiscal', plantedKind: 'ncm-ausente' },
-  { id: 'DEF-SRC-07', origin: 'source-extract', nome: 'Descrição fora de padrão', severidade: 'non-critical', dimensao: 'conformidade',
+  { id: 'DEF-SRC-07', origin: 'source-extract', nome: 'Descrição fora de padrão', severidade: 'non-critical', dimensao: 'conformidade', classe: 'negocio', prazoDias: 15,
     descricao: 'Recado de comprador, marcação de urgência ou status do item escritos na descrição.',
     acao: 'Registrar e seguir. A reescrita é regra candidata.',
     roteadoPara: 'Verene · Suprimentos', plantedKind: 'descricao-fora-de-padrao' },
-  { id: 'DEF-SRC-08', origin: 'source-extract', nome: 'Município sem código IBGE', severidade: 'non-critical', dimensao: 'completude',
+  { id: 'DEF-SRC-08', origin: 'source-extract', nome: 'Município sem código IBGE', severidade: 'non-critical', dimensao: 'completude', classe: 'tecnica', prazoDias: 2,
     descricao: 'O extrato trouxe município e UF, mas não o código.',
     acao: 'Enriquecer pela tabela de referência do IBGE. Só retém se o município não existir na tabela.',
     roteadoPara: 'Monoda · Data Engineering', plantedKind: 'municipio-sem-ibge' },
-  { id: 'DEF-SRC-09', origin: 'source-extract', nome: 'Data em formato divergente', severidade: 'non-critical', dimensao: 'conformidade',
+  { id: 'DEF-SRC-09', origin: 'source-extract', nome: 'Data em formato divergente', severidade: 'non-critical', dimensao: 'conformidade', classe: 'tecnica', prazoDias: 2,
     descricao: 'Parte do extrato em DD/MM/AAAA, parte em AAAA-MM-DD.',
     acao: 'Normalizar por regra de conversão. Não retém.',
     roteadoPara: 'Monoda · Data Engineering', plantedKind: 'data-formato-divergente' },
   // ---------- transformation ----------
-  { id: 'DEF-TRF-01', origin: 'transformation', nome: 'Unidade de medida divergente entre SPEs', severidade: 'critical', dimensao: 'consistencia',
+  { id: 'DEF-TRF-01', origin: 'transformation', nome: 'Unidade de medida divergente entre SPEs', severidade: 'critical', dimensao: 'consistencia', classe: 'tecnica', prazoDias: 2,
     descricao: 'O mesmo metro linear escrito como M, MT e METRO. Sem normalizar, o volume contratado muda de ordem de grandeza.',
     acao: 'Converter pelo domínio do tenant, mantendo a quantidade.',
     roteadoPara: 'Monoda · Data Engineering', plantedKind: 'unidade-medida-divergente' },
-  { id: 'DEF-TRF-02', origin: 'transformation', nome: 'Razão social truncada no limite do campo', severidade: 'non-critical', dimensao: 'conformidade',
+  { id: 'DEF-TRF-02', origin: 'transformation', nome: 'Razão social truncada no limite do campo', severidade: 'non-critical', dimensao: 'conformidade', classe: 'tecnica', prazoDias: 5,
     descricao: 'NAME_ORG1 tem 40 caracteres; razão social maior precisa quebrar em NAME_ORG2 sem cortar palavra ao meio.',
     acao: 'Quebrar pela regra de comprimento e registrar na trilha.',
     roteadoPara: 'Monoda · Data Engineering', plantedKind: null },
-  { id: 'DEF-TRF-03', origin: 'transformation', nome: 'Falta regra para um caso presente no dado', severidade: 'critical', dimensao: 'consistencia',
+  { id: 'DEF-TRF-03', origin: 'transformation', nome: 'Falta regra para um caso presente no dado', severidade: 'critical', dimensao: 'consistencia', classe: 'tecnica', prazoDias: 3,
     descricao: 'O dado apresenta uma situação que o playbook não cobre em nenhuma regra ativa.',
     acao: 'Reter e abrir regra candidata para promoção.',
     roteadoPara: 'Monoda · Data Engineering', plantedKind: null },
   // ---------- target-config ----------
-  { id: 'DEF-TGT-01', origin: 'target-config', nome: 'Fornecedor já cadastrado no destino', severidade: 'critical', dimensao: 'unicidade',
+  { id: 'DEF-TGT-01', origin: 'target-config', nome: 'Fornecedor já cadastrado no destino', severidade: 'critical', dimensao: 'unicidade', classe: 'negocio', prazoDias: 3,
     descricao: 'O documento já existe como Business Partner no tenant. Recriar gera duplicata que só aparece no fechamento fiscal.',
     acao: 'Reusar o Business Partner existente em vez de criar.',
     roteadoPara: 'Verene · Suprimentos', plantedKind: 'ja-existe-no-destino' },
-  { id: 'DEF-TGT-02', origin: 'target-config', nome: 'Campo obrigatório fora do padrão SAP', severidade: 'critical', dimensao: 'completude',
+  { id: 'DEF-TGT-02', origin: 'target-config', nome: 'Campo obrigatório fora do padrão SAP', severidade: 'critical', dimensao: 'completude', classe: 'tecnica', prazoDias: 3,
     descricao: 'O tenant exige um campo que o SAP de fábrica deixa opcional, e o legado não tem esse dado.',
     acao: 'Reter e evidenciar a divergência para decisão da Verene.',
     roteadoPara: 'Verene · Arquitetura S/4HANA', plantedKind: null },
-  { id: 'DEF-TGT-03', origin: 'target-config', nome: 'Valor sem entrada no domínio do tenant', severidade: 'critical', dimensao: 'validade',
+  { id: 'DEF-TGT-03', origin: 'target-config', nome: 'Valor sem entrada no domínio do tenant', severidade: 'critical', dimensao: 'validade', classe: 'tecnica', prazoDias: 3,
     descricao: 'O valor do legado não tem correspondente no domínio configurado.',
     acao: 'Reter. Criar entrada de domínio é decisão de configuração, não de migração.',
     roteadoPara: 'Verene · Arquitetura S/4HANA', plantedKind: null },
-  { id: 'DEF-TGT-04', origin: 'target-config', nome: 'Regra de negócio não escrita em lugar nenhum', severidade: 'critical', dimensao: 'consistencia',
+  { id: 'DEF-TGT-04', origin: 'target-config', nome: 'Regra de negócio não escrita em lugar nenhum', severidade: 'critical', dimensao: 'consistencia', classe: 'negocio', prazoDias: 5,
     descricao: 'Duas SPEs tratam o mesmo caso de forma diferente e nenhuma configuração do tenant decide qual está certa.',
     acao: 'Reter os dois lados e escalar para o dono do processo. É decisão, não engenharia.',
     roteadoPara: 'Verene · Fiscal', plantedKind: 'retencao-pf-divergente' },
   // ---------- load-execution ----------
-  { id: 'DEF-LOD-01', origin: 'load-execution', nome: 'Lote rejeitado pelo Migration Cockpit', severidade: 'critical', dimensao: 'validade',
+  { id: 'DEF-LOD-01', origin: 'load-execution', nome: 'Lote rejeitado pelo Migration Cockpit', severidade: 'critical', dimensao: 'validade', classe: 'tecnica', prazoDias: 1,
     descricao: 'O pacote foi recusado na execução, apesar de íntegro no checksum.',
     acao: 'Reenviar após tratar a causa apontada pelo destino.',
     roteadoPara: 'Monoda · Data Engineering', plantedKind: null },
-  { id: 'DEF-LOD-02', origin: 'load-execution', nome: 'Faixa de numeração esgotada', severidade: 'critical', dimensao: 'validade',
+  { id: 'DEF-LOD-02', origin: 'load-execution', nome: 'Faixa de numeração esgotada', severidade: 'critical', dimensao: 'validade', classe: 'tecnica', prazoDias: 1,
     descricao: 'A faixa externa do grupo de contas acabou durante a carga.',
     acao: 'Parar a carga. Estender a faixa é ação do time Basis da Verene.',
     roteadoPara: 'Verene · Basis', plantedKind: null },
-  { id: 'DEF-LOD-03', origin: 'load-execution', nome: 'Ambiente indisponível na janela de carga', severidade: 'non-critical', dimensao: 'precisao',
+  { id: 'DEF-LOD-03', origin: 'load-execution', nome: 'Ambiente indisponível na janela de carga', severidade: 'non-critical', dimensao: 'precisao', classe: 'tecnica', prazoDias: 1,
     descricao: 'O tenant não respondeu na janela acordada.',
     acao: 'Reagendar. O pacote continua válido — o checksum prova.',
     roteadoPara: 'Verene · Basis', plantedKind: null },
