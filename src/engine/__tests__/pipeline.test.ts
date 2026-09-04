@@ -28,7 +28,7 @@ const assinatura = (decision: Decision = 'approved'): Signature => ({
 
 /** Roda a esteira até o fim, assinando cada checkpoint conforme ele aparece. */
 function correrAteOFim(records: readonly (typeof nasajonSuppliers)[number][], decisaoExcecao: Decision = 'approved'): PipelineRun {
-  let approvals: Approvals = { ...emptyApprovals, mapeamento: assinatura() }
+  let approvals: Approvals = { ...emptyApprovals, mapeamentoSme: assinatura(), mapeamento: assinatura() }
   let run = runPipeline({ records, approvals })
 
   approvals = {
@@ -149,10 +149,34 @@ describe('esteira de nove passos', () => {
 })
 
 describe('checkpoints humanos bloqueantes', () => {
+  it('exige as DUAS assinaturas de mapeamento: SAP SME e data owner', () => {
+    const soSme = runPipeline({ records: SPE1, approvals: { ...emptyApprovals, mapeamentoSme: assinatura() } })
+    expect(soSme.blockedAt).toBe('transform')
+    expect(soSme.checkpoints[0]?.pendentes).toEqual(['data-owner'])
+
+    const soOwner = runPipeline({ records: SPE1, approvals: { ...emptyApprovals, mapeamento: assinatura() } })
+    expect(soOwner.blockedAt).toBe('transform')
+    expect(soOwner.checkpoints[0]?.pendentes).toEqual(['sme'])
+
+    const ambas = runPipeline({
+      records: SPE1,
+      approvals: { ...emptyApprovals, mapeamentoSme: assinatura(), mapeamento: assinatura() },
+    })
+    expect(ambas.blockedAt).not.toBe('transform')
+
+    // recusa de qualquer uma das duas mantém bloqueado
+    const smeRecusou = runPipeline({
+      records: SPE1,
+      approvals: { ...emptyApprovals, mapeamentoSme: assinatura('rejected'), mapeamento: assinatura() },
+    })
+    expect(smeRecusou.blockedAt).toBe('transform')
+  })
+
   it('para no checkpoint 1 sem aprovação de mapeamento', () => {
     const run = runPipeline({ records: SPE1 })
     expect(run.blockedAt).toBe('transform')
     expect(run.checkpoints).toHaveLength(1)
+    expect(run.checkpoints[0]?.requeridas).toBe(2)
     expect(run.checkpoints[0]?.liberado).toBe(false)
     expect(run.steps.filter((s) => s.status === 'completed').map((s) => s.id)).toEqual([
       'receive', 'profile', 'map',
@@ -162,7 +186,7 @@ describe('checkpoints humanos bloqueantes', () => {
   })
 
   it('para no checkpoint 2 até cada cluster ser confirmado um a um', () => {
-    const run = runPipeline({ records: TODOS, approvals: { ...emptyApprovals, mapeamento: assinatura() } })
+    const run = runPipeline({ records: TODOS, approvals: { ...emptyApprovals, mapeamentoSme: assinatura(), mapeamento: assinatura() } })
     expect(run.blockedAt).toBe('enrich')
     const cp2 = run.checkpoints.find((c) => c.id === 'duplicatas')
     expect(cp2?.liberado).toBe(false)
@@ -173,14 +197,14 @@ describe('checkpoints humanos bloqueantes', () => {
     const menosUm = Object.fromEntries(run.clusters.slice(1).map((c) => [c.id, assinatura()]))
     const parcial = runPipeline({
       records: TODOS,
-      approvals: { ...emptyApprovals, mapeamento: assinatura(), clusters: menosUm },
+      approvals: { ...emptyApprovals, mapeamentoSme: assinatura(), mapeamento: assinatura(), clusters: menosUm },
     })
     expect(parcial.blockedAt).toBe('enrich')
     expect(parcial.checkpoints.find((c) => c.id === 'duplicatas')?.pendentes).toHaveLength(1)
   })
 
   it('para no checkpoint 3 até cada exceção ser decidida', () => {
-    const approvals: Approvals = { ...emptyApprovals, mapeamento: assinatura() }
+    const approvals: Approvals = { ...emptyApprovals, mapeamentoSme: assinatura(), mapeamento: assinatura() }
     const parcial = runPipeline({ records: SPE1, approvals })
     const comClusters: Approvals = {
       ...approvals,
@@ -200,7 +224,7 @@ describe('checkpoints humanos bloqueantes', () => {
     expect(cp4?.liberado).toBe(true)
 
     // rodar de novo sem a assinatura da reconciliação
-    let approvals: Approvals = { ...emptyApprovals, mapeamento: assinatura() }
+    let approvals: Approvals = { ...emptyApprovals, mapeamentoSme: assinatura(), mapeamento: assinatura() }
     let parcial = runPipeline({ records: SPE1, approvals })
     approvals = { ...approvals, clusters: Object.fromEntries(parcial.clusters.map((c) => [c.id, assinatura()])) }
     parcial = runPipeline({ records: SPE1, approvals })

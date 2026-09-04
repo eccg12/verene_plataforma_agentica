@@ -171,6 +171,25 @@ no próprio conteúdo e a barra continua escura — as superfícies aninham corr
 Onde não há extrato — pedidos, requisições e posições de estoque —, o quadro mostra `não
 iniciado`. Declarar estado de dado que não existe seria inventar.
 
+`/playbook` (KANON) e `/mapping` (LYRA) são telas de **documento**: superfície clara, dentro do
+shell escuro. São evidência, não operação.
+
+- **`/playbook`** lista as regras versionadas com filtro por agente, objeto e tipo. O detalhe traz
+  expressão, justificativa, dono, versão em que a regra entrou, histórico de alterações e
+  **"aplicada a N registros nesta onda"** — contado da trilha do run, com os códigos dos registros.
+  Regra que não rodou mostra zero, e regra candidata mostra zero sempre, porque proposta não
+  executa. "Gerar documentação" monta o texto a partir das próprias regras, na hora.
+- **`/mapping`** é o dicionário campo a campo. A coluna *Value domain (live tenant)* lê os domínios
+  de `tenant-config.ts` — a configuração ativa —, e cada linha aponta para a regra do playbook e
+  para a divergência do padrão SAP que a afeta. Não há tabela paralela mantida à mão, e há teste
+  garantindo que toda regra, todo domínio e toda divergência citados existem de fato.
+
+**As duas telas se conectam pelo motor.** O checkpoint 1 exige duas assinaturas distintas: o SAP
+SME aprova tecnicamente e o data owner assina no Gate 1. Enquanto faltar qualquer uma, `/mapping`
+mostra o aviso e a esteira para no passo 3 — e o `/playbook` mostra as regras de ATLAS e NOVA com
+zero registros. Assinadas as duas, as contagens sobem de 12 para 23 regras aplicadas. O aviso não
+é decorativo: é o motor.
+
 ## Comandos
 
 ```bash

@@ -2,6 +2,8 @@
 export const paths = {
   home: '/',
   missionControl: '/mission-control',
+  playbook: '/playbook',
+  mapping: '/mapping',
   styleguide: '/styleguide',
 } as const
 

@@ -87,7 +87,12 @@ export const checkpointIds = ['mapeamento', 'duplicatas', 'excecoes', 'pacote-re
 export type CheckpointId = (typeof checkpointIds)[number]
 
 export interface Approvals {
-  /** Checkpoint 1, após o passo 3: mapeamento aprovado. */
+  /**
+   * Checkpoint 1, após o passo 3. Duas assinaturas distintas: o SAP SME aprova
+   * tecnicamente o de-para contra o tenant, e o data owner da Verene assina no
+   * Gate 1. Uma não substitui a outra.
+   */
+  readonly mapeamentoSme: Signature | null
   readonly mapeamento: Signature | null
   /** Checkpoint 2, após o passo 5: um a um, cada cluster de duplicata. */
   readonly clusters: Readonly<Record<string, Signature>>
@@ -99,6 +104,7 @@ export interface Approvals {
 }
 
 export const emptyApprovals: Approvals = {
+  mapeamentoSme: null,
   mapeamento: null,
   clusters: {},
   excecoes: {},
@@ -593,15 +599,21 @@ export function runPipeline(input: PipelineInput): PipelineRun {
   fechar('map', work.length)
 
   // ===== CHECKPOINT 1 — mapeamento aprovado =====
+  const pendentesMapeamento = [
+    approvals.mapeamentoSme ? null : 'sme',
+    approvals.mapeamento ? null : 'data-owner',
+  ].filter((v): v is string => v !== null)
   const cp1: CheckpointState = {
     id: 'mapeamento',
     titulo: 'Mapeamento aprovado',
     apos: 'map',
-    descricao: 'O de-para contra o tenant precisa de aprovação antes de qualquer transformação.',
-    requeridas: 1,
-    assinadas: approvals.mapeamento ? 1 : 0,
-    pendentes: approvals.mapeamento ? [] : ['mapeamento'],
-    liberado: approvals.mapeamento?.decision === 'approved',
+    descricao:
+      'O de-para contra o tenant precisa da aprovação técnica do SAP SME e da assinatura do data owner da Verene no Gate 1. Nenhuma transformação roda sobre mapeamento não aprovado.',
+    requeridas: 2,
+    assinadas: 2 - pendentesMapeamento.length,
+    pendentes: pendentesMapeamento,
+    liberado:
+      approvals.mapeamentoSme?.decision === 'approved' && approvals.mapeamento?.decision === 'approved',
   }
   if (!cp1.liberado) {
     resolverTodos(work, approvals)

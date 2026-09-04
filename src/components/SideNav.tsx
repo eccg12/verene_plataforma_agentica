@@ -1,4 +1,4 @@
-import { LayoutGrid, Palette } from 'lucide-react'
+import { BookText, LayoutGrid, Palette, TableProperties } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 import { paths } from '@/app/paths'
@@ -8,6 +8,8 @@ const ICON = 14
 
 const ITENS = [
   { to: paths.missionControl, rotulo: strings.nav.missionControl, Icone: LayoutGrid },
+  { to: paths.playbook, rotulo: strings.nav.playbook, Icone: BookText },
+  { to: paths.mapping, rotulo: strings.nav.mapping, Icone: TableProperties },
   { to: paths.styleguide, rotulo: strings.nav.styleguide, Icone: Palette },
 ] as const
 

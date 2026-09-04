@@ -42,6 +42,9 @@ export interface SimulationState {
   setSpe: (spe: SpeFilter) => void
   setCiclo: (ciclo: Cycle) => void
   setPlaybookVersion: (version: string) => void
+  /** Aprovação técnica do SAP SME sobre o de-para. */
+  approveMappingSme: (decision: Decision, note?: string) => void
+  /** Assinatura do data owner da Verene no Gate 1. */
   approveMapping: (decision: Decision, note?: string) => void
   confirmCluster: (clusterId: string, decision: Decision, note?: string) => void
   decideException: (exceptionId: string, decision: Decision, note?: string) => void
@@ -56,7 +59,8 @@ export interface SimulationState {
 
 /** Papéis que assinam. O checkpoint diz quem pode assinar o quê. */
 export const signatories = {
-  mapeamento: { by: 'Ana Ribeiro', role: 'Verene · Suprimentos' },
+  mapeamentoSme: { by: 'Rafael Queiroz', role: 'Monoda · SAP SME' },
+  mapeamento: { by: 'Helena Duarte', role: 'Verene · Data owner' },
   duplicatas: { by: 'Ana Ribeiro', role: 'Verene · Suprimentos' },
   excecoes: { by: 'Carlos Menezes', role: 'Verene · Fiscal' },
   pacote: { by: 'Helena Duarte', role: 'Verene · Data owner' },
@@ -118,6 +122,11 @@ export const useSimulation = create<SimulationState>((set, get) => {
     // grade, não entra na esteira.
     setCiclo: (ciclo) => set({ ciclo }),
     setPlaybookVersion: (playbookVersion) => recomputar({ playbookVersion, approvals: emptyApprovals }),
+
+    approveMappingSme: (decision, note) =>
+      recomputar({
+        approvals: { ...get().approvals, mapeamentoSme: sign(signatories.mapeamentoSme, decision, note) },
+      }),
 
     approveMapping: (decision, note) =>
       recomputar({

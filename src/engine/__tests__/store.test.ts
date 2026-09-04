@@ -20,6 +20,7 @@ describe('store da simulação', () => {
   })
 
   it('na SPE-1 isolada não há cluster: todos os pares de duplicata cruzam SPEs', () => {
+    estado().approveMappingSme('approved')
     estado().approveMapping('approved')
     // o checkpoint 2 fica vazio e é satisfeito por vacuidade — não há o que confirmar
     expect(estado().run.clusters).toHaveLength(0)
@@ -29,6 +30,7 @@ describe('store da simulação', () => {
 
   it('deriva o run das assinaturas, avançando checkpoint a checkpoint', () => {
     estado().setSpe('todas')
+    estado().approveMappingSme('approved')
     estado().approveMapping('approved')
     expect(estado().run.blockedAt).toBe('enrich')
 
@@ -55,6 +57,7 @@ describe('store da simulação', () => {
   })
 
   it('zera as assinaturas ao trocar de SPE: assinatura não atravessa recorte', () => {
+    estado().approveMappingSme('approved')
     estado().approveMapping('approved')
     expect(estado().approvals.mapeamento).not.toBeNull()
     estado().setSpe('SPE-2')
@@ -65,6 +68,7 @@ describe('store da simulação', () => {
 
   it('reset volta ao estado inicial', () => {
     estado().setSpe('todas')
+    estado().approveMappingSme('approved')
     estado().approveMapping('approved')
     estado().confirmAllClusters('approved')
     expect(estado().spe).toBe('todas')
@@ -81,6 +85,7 @@ describe('store da simulação', () => {
 
   it('recusar exceção mantém o registro retido e fora do pacote', () => {
     estado().setSpe('todas')
+    estado().approveMappingSme('approved')
     estado().approveMapping('approved')
     estado().confirmAllClusters('approved')
     estado().decideAllExceptions('rejected')
