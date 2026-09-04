@@ -1,0 +1,207 @@
+@import 'tailwindcss';
+@config '../../tailwind.config.ts';
+
+/* ==========================================================================
+   KEPLER — design system
+   Paleta base: extraída do deck Galaxy (co-branded Verene + Monoda). Os nove
+   valores de `--color-<nome>` abaixo são os do deck e não devem ser alterados.
+
+   Os tokens semânticos (superfície, estado, origem de defeito) são DERIVADOS e
+   resolvidos por superfície. Duas cores do deck não passam em ambas:
+     verene-violet #7030A0 sobre ink   = 2.36:1  (reprovado)
+     signal-green  #00C771 sobre paper = 2.08:1  (reprovado)
+   Por isso o token semântico troca de valor conforme a superfície, em vez de a
+   UI usar a cor bruta. Todos os pares texto/fundo do sistema foram verificados
+   em >= 4.5:1 (WCAG AA). Ver scripts/check-tokens.mjs.
+   ========================================================================== */
+
+@theme static {
+  /* ---- paleta base do deck (imutável) ---- */
+  --color-verene-violet: #7030a0;
+  --color-verene-violet-lt: #a56fd0;
+  --color-ink: #111111;
+  --color-monoda-navy: #002b49;
+  --color-slate: #2c3e50;
+  --color-signal-green: #00c771;
+  --color-paper: #f7f7f7;
+  --color-line-base: #eaeaea;
+  --color-mute: #d2d2d2;
+
+  /* ---- tipografia: geométrica, substituta web da Century Gothic do deck ---- */
+  --font-sans: 'Jost Variable', 'Jost', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* escala densa: software de analista, não landing page */
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
+  --text-xs: 0.6875rem;
+  --text-xs--line-height: 0.9375rem;
+  --text-sm: 0.75rem;
+  --text-sm--line-height: 1rem;
+  --text-base: 0.8125rem;
+  --text-base--line-height: 1.125rem;
+  --text-md: 0.875rem;
+  --text-md--line-height: 1.25rem;
+  --text-lg: 1rem;
+  --text-lg--line-height: 1.375rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.625rem;
+
+  /* ---- tokens semânticos: valores padrão = superfície escura (cockpit) ---- */
+  --color-surface: #111111;
+  --color-surface-raised: #1e1e1e;
+  --color-surface-sunken: #050505;
+  --color-fg: #f7f7f7;
+  --color-fg-muted: #d2d2d2;
+  --color-fg-subtle: #7e7e7e;
+  --color-line: #292929;
+  --color-line-strong: #424242;
+  --color-accent: #a56fd0;
+  --color-accent-hover: #bf88f2;
+  --color-accent-fill: #7030a0;
+  --color-accent-fill-hover: #993cdb;
+  --color-on-accent-fill: #f7f7f7;
+
+  --color-signed: #00c771;
+  --color-signed-bg: #16261b;
+  --color-held: #d1881c;
+  --color-held-bg: #2b2115;
+  --color-exception: #fa4547;
+  --color-exception-bg: #391917;
+  --color-pending-gate: #778ea3;
+  --color-pending-gate-bg: #1f2326;
+
+  --color-defect-source: #24bab8;
+  --color-defect-source-bg: #162524;
+  --color-defect-transformation: #1c96d8;
+  --color-defect-transformation-bg: #15242e;
+  --color-defect-target-config: #958dfa;
+  --color-defect-target-config-bg: #211d44;
+  --color-defect-load: #fb45d4;
+  --color-defect-load-bg: #35192d;
+}
+
+/* ==========================================================================
+   Superfícies. A alternância é intencional: escura = máquina em operação,
+   clara = evidência/documento. Aplicar uma destas classes define o contexto
+   inteiro; os componentes usam só tokens semânticos e seguem a superfície.
+   ========================================================================== */
+
+.surface-ink {
+  --color-surface: #111111;
+  --color-surface-raised: #1e1e1e;
+  --color-surface-sunken: #050505;
+  --color-fg: #f7f7f7;
+  --color-fg-muted: #d2d2d2;
+  --color-fg-subtle: #7e7e7e;
+  --color-line: #292929;
+  --color-line-strong: #424242;
+  --color-accent: #a56fd0;
+  --color-accent-hover: #bf88f2;
+  --color-accent-fill: #7030a0;
+  --color-accent-fill-hover: #993cdb;
+  --color-on-accent-fill: #f7f7f7;
+
+  --color-signed: #00c771;
+  --color-signed-bg: #16261b;
+  --color-held: #d1881c;
+  --color-held-bg: #2b2115;
+  --color-exception: #fa4547;
+  --color-exception-bg: #391917;
+  --color-pending-gate: #778ea3;
+  --color-pending-gate-bg: #1f2326;
+
+  --color-defect-source: #24bab8;
+  --color-defect-source-bg: #162524;
+  --color-defect-transformation: #1c96d8;
+  --color-defect-transformation-bg: #15242e;
+  --color-defect-target-config: #958dfa;
+  --color-defect-target-config-bg: #211d44;
+  --color-defect-load: #fb45d4;
+  --color-defect-load-bg: #35192d;
+
+  background-color: var(--color-surface);
+  color: var(--color-fg);
+}
+
+.surface-paper {
+  --color-surface: #f7f7f7;
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #f0f0f0;
+  --color-fg: #111111;
+  --color-fg-muted: #505050;
+  --color-fg-subtle: #707070;
+  --color-line: #eaeaea;
+  --color-line-strong: #d2d2d2;
+  --color-accent: #7030a0;
+  --color-accent-hover: #621793;
+  --color-accent-fill: #7030a0;
+  --color-accent-fill-hover: #621793;
+  --color-on-accent-fill: #f7f7f7;
+
+  --color-signed: #0e6639;
+  --color-signed-bg: #def1e4;
+  --color-held: #7c4f0c;
+  --color-held-bg: #f2ebe4;
+  --color-exception: #c81726;
+  --color-exception-bg: #f2eaea;
+  --color-pending-gate: #556676;
+  --color-pending-gate-bg: #ebeced;
+
+  --color-defect-source: #0b5655;
+  --color-defect-source-bg: #d9f1f0;
+  --color-defect-transformation: #106797;
+  --color-defect-transformation-bg: #e7edf1;
+  --color-defect-target-config: #611af0;
+  --color-defect-target-config-bg: #ebebf1;
+  --color-defect-load: #a8148d;
+  --color-defect-load-bg: #f2eaf0;
+
+  background-color: var(--color-surface);
+  color: var(--color-fg);
+}
+
+/* Números tabulares. Jost tem digitos proporcionais por padrão (o "1" é 25%
+   mais estreito que o "0"), o que faz coluna numérica dançar; a feature `tnum`
+   existe na fonte e iguala todos em 580/1000. */
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* toda tabela é numérica até prova em contrário */
+  table {
+    font-variant-numeric: tabular-nums;
+    border-collapse: collapse;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

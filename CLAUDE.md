@@ -56,6 +56,41 @@ src/
 
 Import alias: `@/` aponta para `src/`.
 
+## Design system
+
+Paleta extraída do deck Galaxy (co-branded Verene + Monoda). Regras de uso:
+
+- **Duas superfícies.** `surface-ink` (#111111) para telas de cockpit/operação e
+  `surface-paper` (#F7F7F7) para telas de documento (playbook, dicionário de mapeamento,
+  manifest). A alternância é intencional: reforça "isto é máquina" vs "isto é evidência".
+  Use o componente `Surface` — ele define o contexto e todos os tokens seguem.
+- **Componentes nunca usam a paleta base direto.** Usam token semântico (`bg-surface`,
+  `text-fg`, `text-accent`, `bg-signed-bg`…), porque só o token resolve por superfície.
+  Duas cores do deck não passam em contraste nas duas: `verene-violet` reprova sobre a
+  escura (2,36:1) e `signal-green` reprova sobre a clara (2,08:1). Por isso `--color-accent`
+  vale `verene-violet-lt` no escuro e `verene-violet` no claro — a regra de uso é a mesma,
+  o valor é que muda.
+- **Escalas de cor separadas por temperatura.** Estados (`signed`, `held`, `exception`,
+  `pending-gate`) usam matizes quentes mais um neutro frio. Origens de defeito
+  (`defect-source`, `defect-transformation`, `defect-target-config`, `defect-load`) usam
+  matizes frios, separadas por matiz e por luminância. As duas escalas também têm formas
+  diferentes: estado é pílula com rótulo, origem de defeito é quadrado + rótulo.
+- **Cor nunca é o único portador de significado.** Todo badge e toda origem levam rótulo.
+- **Densidade alta.** Software para analista de dados: linha de tabela de 28px, corpo de
+  13px, controles de 28px. Sem hero, sem card gigante, sem gradiente decorativo, sem
+  stripe de destaque na borda de card.
+- **Sem emoji.** Ícones `lucide-react` em tamanho consistente (14px em UI densa).
+- **Números sempre tabulares** em tabela e contador (`tnum`). A Jost tem dígitos
+  proporcionais por padrão — o "1" é 25% mais estreito que o "0" — e sem `tnum` a coluna
+  numérica dança.
+- **Tipografia:** Jost (variável, via `@fontsource-variable/jost`), geométrica, substituta
+  web da Century Gothic do deck. Servida do bundle: webfont externa seria chamada de rede.
+
+Onde ficam os valores: `@theme` de `src/styles/globals.css` é o que vale em runtime —
+só ele emite as custom properties que as superfícies redefinem. `tailwind.config.ts` é o
+espelho tipado da paleta para consumo por TypeScript, e `npm run check:tokens` falha se os
+dois divergirem. Os slots de logo ficam em `src/assets/logos/` (ver README de lá).
+
 ## Comandos
 
 ```bash
@@ -64,6 +99,7 @@ npm run build      # typecheck + build de produção
 npm run preview    # serve o build
 npm run typecheck  # tsc -b
 npm run lint       # eslint
+npm run check:tokens  # paleta de tailwind.config.ts x @theme de globals.css
 ```
 
 ## Verificações automáticas

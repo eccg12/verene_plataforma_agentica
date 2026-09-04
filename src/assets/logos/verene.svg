@@ -1,0 +1,8 @@
+<!-- PLACEHOLDER — substituir pelo logo oficial da Verene Energia (mesmo nome de arquivo).
+     Proporção de referência 128x32. Usa currentColor para seguir a superfície. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 32" role="img" aria-label="Verene Energia">
+  <rect x="0.5" y="0.5" width="127" height="31" rx="2" fill="none"
+        stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="3 3"/>
+  <text x="64" y="20" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif"
+        font-size="10" letter-spacing="1.5" fill="currentColor" fill-opacity="0.75">VERENE</text>
+</svg>
