@@ -8,7 +8,10 @@ import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
 import { emptyApprovals, runPipeline, type Approvals, type Signature } from '@/engine/pipeline'
 import { resumoDoPlaybook, usoDasRegras } from '@/engine/playbook-usage'
 
-const sig: Signature = { by: 't', role: 't', decision: 'approved', at: '2026-01-12T09:00:00.000Z', note: null }
+const sig: Signature = {
+  by: 't', role: 't', decision: 'approved', at: '2026-01-12T09:00:00.000Z',
+  playbookVersion: PLAYBOOK_VERSION, note: null,
+}
 const SPE1 = nasajonSuppliers.filter((s) => s.spe === 'SPE-1')
 
 function runAprovado(): ReturnType<typeof runPipeline> {

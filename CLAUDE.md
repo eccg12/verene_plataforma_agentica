@@ -140,6 +140,11 @@ O motor torna isso literal, não retórico.
 duplicata, um a um), o 7 (cada exceção decidida) e os 8 e 9 (pacote e reconciliação, pelo data
 owner). Sem assinatura o passo seguinte nem roda — sai como `blocked`/`not-reached`.
 
+**Toda assinatura carrega a versão do playbook.** `Signature` registra quem, quando e sobre qual
+versão — e assinatura dada sobre outra versão não vale para a corrente. Sem esse campo, "revisado
+e assinado" não diz o que foi revisado: a regra pode ter mudado depois. Trocar de versão (ou de
+SPE) zera as assinaturas na store, porque aprovação não atravessa recorte nem versão.
+
 **Determinismo.** O estado final de um registro é *derivado* das assinaturas, nunca acumulado por
 mutação ao longo dos passos: acumular dava ordem-dependência. Não há `Math.random` nem `Date.now`
 no motor; o instante vem do epoch fixo de `clock.ts`. Entrada e saída são ordenadas de forma
@@ -224,11 +229,37 @@ terceiros**. O placar mede os quatro critérios de aceite, cada um com o Gate on
 **apenas** a origem `transformation`. A verificação guiada nos apps Fiori, por objeto, fecha a
 lacuna que a contagem não fecha e é registrada como evidência de Gate.
 
+`/gates` (escura) é a tela de decisão contratual. Oito Gates, G0 a G7, cada um com quando ocorre,
+o que é aprovado, a evidência entregue (com link para a tela onde ela vive), o aprovador nomeado e
+o estado. Três coisas fazem ela não ser reunião de status:
+
+- **Cada Gate aprova um artefato nomeado** (A0 a A7), e a entrada do Gate seguinte é **RECUSADA**
+  enquanto esse artefato não estiver assinado. No estado inicial, seis dos oito aparecem como
+  `entrada-recusada` — a recusa nomeia o artefato em falta e o Gate que o assina, e clicar nele
+  leva até lá. Assinar não em ordem não contorna nada: `estadoDosGates` só considera assinado o
+  artefato de um Gate cuja entrada foi admitida. Há teste, e a mutação que remove essa condição
+  falha.
+- **A trilha mostra quem, quando e sobre qual versão de playbook.** É a coluna que sustenta o
+  argumento de governança; sem ela, a tela seria um semáforo colorido.
+- **G1 a G4 são os quatro checkpoints da esteira**, assinados onde a evidência é revisada
+  (`/mapping`, `/review/duplicates`, `/review/exceptions`) — o Gate mostra a trilha e leva até lá.
+  G0 é a linha de base (escopo, recibo do extrato e playbook selado, assinada antes do epoch da
+  simulação), e G5, G6 e G7 são assinados na própria tela.
+
+`/gates/payment` liga Gate a parcela (G1 20%, G2 20%, G4 20%, G6 25%, G7 15% — soma 100, há teste).
+Fica **atrás da flag** `comercial`: sem `?flag=comercial` na URL, a rota volta para `/gates` e nem o
+link aparece. A flag liga por parâmetro de URL, vive em memória (regra 6) e `reset()` desliga. Só
+percentual: o valor do contrato não vive no protótipo, e número inventado ao lado de percentual
+real seria pior do que não mostrar valor. G0, G3 e G5 aparecem sem parcela — nem todo ponto de
+decisão é ponto de faturamento, e um Gate sem dinheiro atrás continua bloqueante.
+
 **As telas se conectam pelo motor.** O checkpoint 1 exige duas assinaturas distintas: o SAP
 SME aprova tecnicamente e o data owner assina no Gate 1. Enquanto faltar qualquer uma, `/mapping`
 mostra o aviso e a esteira para no passo 3 — e o `/playbook` mostra as regras de ATLAS e NOVA com
 zero registros. Assinadas as duas, as contagens sobem de 12 para 23 regras aplicadas. O aviso não
-é decorativo: é o motor.
+é decorativo: é o motor. Em `/gates` a mesma assinatura move o placar de 1 para 2 Gates aprovados e
+tira um da fila de recusa; percorrendo as filas e assinando G4 a G7, os oito fecham e o painel
+comercial passa de 0% para 100% liberado.
 
 ## Comandos
 

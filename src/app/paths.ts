@@ -2,6 +2,9 @@
 export const paths = {
   home: '/',
   missionControl: '/mission-control',
+  gates: '/gates',
+  /** Painel comercial: só é alcançável com a flag `comercial` ligada. */
+  gatesPayment: '/gates/payment',
   playbook: '/playbook',
   mapping: '/mapping',
   /** Base da rota de rastreabilidade; o id do registro vem depois. */

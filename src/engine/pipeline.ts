@@ -80,6 +80,12 @@ export interface Signature {
   readonly decision: Decision
   /** Instante determinístico, derivado do epoch da simulação. */
   readonly at: string
+  /**
+   * Versão do playbook sobre a qual a assinatura foi dada. Sem isto, "revisado
+   * e assinado" não diz o que foi assinado: assinatura vale para uma versão de
+   * regra, e mudar a regra não carrega a aprovação anterior junto.
+   */
+  readonly playbookVersion: string
   readonly note: string | null
 }
 

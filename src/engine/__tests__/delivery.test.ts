@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { LIMITE_ARQUIVO_MB, LIMITE_REGISTROS_POR_PARTE, simulacoesCockpit } from '@/data/delivery'
 import { verificacoesFiori } from '@/data/fiori-checks'
 import { criteriosDeAceite, gateById, gateIds, gates } from '@/data/gates'
+import { PLAYBOOK_VERSION } from '@/data/playbook'
 import { scopeObjects } from '@/data/scope'
 import { nasajonContracts } from '@/data/source/nasajon-contracts'
 import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
@@ -17,7 +18,10 @@ import {
   valorPorSpe,
 } from '@/engine/reconciliation'
 
-const sig: Signature = { by: 't', role: 't', decision: 'approved', at: '2026-01-12T09:00:00.000Z', note: null }
+const sig: Signature = {
+  by: 't', role: 't', decision: 'approved', at: '2026-01-12T09:00:00.000Z',
+  playbookVersion: PLAYBOOK_VERSION, note: null,
+}
 
 function runCompleto() {
   const base: Approvals = { ...emptyApprovals, mapeamentoSme: sig, mapeamento: sig }
@@ -34,8 +38,8 @@ function runCompleto() {
 }
 
 describe('gates e critérios de aceite', () => {
-  it('declara seis gates, e os quatro checkpoints da esteira têm gate correspondente', () => {
-    expect(gates).toHaveLength(6)
+  it('declara oito gates, e os quatro checkpoints da esteira têm gate correspondente', () => {
+    expect(gates).toHaveLength(8)
     expect(gates.map((g) => g.id)).toEqual([...gateIds])
     const comCheckpoint = gates.filter((g) => g.checkpoint !== null).map((g) => g.checkpoint)
     expect([...comCheckpoint].sort()).toEqual([...checkpointIds].sort())

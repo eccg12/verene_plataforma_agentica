@@ -23,6 +23,7 @@ const assinatura = (decision: Decision = 'approved'): Signature => ({
   role: 'Verene',
   decision,
   at: '2026-01-12T09:00:00.000Z',
+  playbookVersion: PLAYBOOK_VERSION,
   note: null,
 })
 

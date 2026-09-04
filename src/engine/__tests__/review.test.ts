@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { defectTypes } from '@/data/defect-taxonomy'
 import { nasajonContracts } from '@/data/source/nasajon-contracts'
 import { nasajonMaterials } from '@/data/source/nasajon-materials'
+import { PLAYBOOK_VERSION } from '@/data/playbook'
 import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
 import { runContractLine } from '@/engine/contract-pipeline'
 import {
@@ -15,7 +16,10 @@ import { analisarCluster } from '@/engine/matching'
 import { emptyApprovals, pipelineSteps, runPipeline, type Approvals, type Signature } from '@/engine/pipeline'
 import { PlaybookViolation } from '@/engine/kanon'
 
-const sig: Signature = { by: 't', role: 't', decision: 'approved', at: '2026-01-12T09:00:00.000Z', note: null }
+const sig: Signature = {
+  by: 't', role: 't', decision: 'approved', at: '2026-01-12T09:00:00.000Z',
+  playbookVersion: PLAYBOOK_VERSION, note: null,
+}
 
 function runCompleto() {
   const base: Approvals = { ...emptyApprovals, mapeamentoSme: sig, mapeamento: sig }

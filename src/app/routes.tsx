@@ -3,6 +3,8 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppShell } from '@/components/AppShell'
 import { DuplicatesScreen } from '@/screens/DuplicatesScreen'
 import { ExceptionsScreen } from '@/screens/ExceptionsScreen'
+import { GatePaymentScreen } from '@/screens/GatePaymentScreen'
+import { GatesScreen } from '@/screens/GatesScreen'
 import { MappingScreen } from '@/screens/MappingScreen'
 import { PackagesScreen } from '@/screens/PackagesScreen'
 import { RecordScreen } from '@/screens/RecordScreen'
@@ -20,6 +22,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to={paths.missionControl} replace /> },
       { path: paths.missionControl, element: <MissionControlScreen /> },
+      { path: paths.gates, element: <GatesScreen /> },
+      { path: paths.gatesPayment, element: <GatePaymentScreen /> },
       { path: paths.playbook, element: <PlaybookScreen /> },
       { path: paths.mapping, element: <MappingScreen /> },
       { path: paths.record, element: <RecordScreen /> },

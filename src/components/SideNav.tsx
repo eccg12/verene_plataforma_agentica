@@ -1,5 +1,6 @@
 import {
   BookText,
+  CircleCheckBig,
   Copy,
   LayoutGrid,
   Package,
@@ -18,6 +19,7 @@ const ICON = 14
 
 const ITENS = [
   { to: paths.missionControl, rotulo: strings.nav.missionControl, Icone: LayoutGrid },
+  { to: paths.gates, rotulo: strings.nav.gates, Icone: CircleCheckBig },
   { to: paths.playbook, rotulo: strings.nav.playbook, Icone: BookText },
   { to: paths.mapping, rotulo: strings.nav.mapping, Icone: TableProperties },
   { to: `${paths.recordBase}/F1001`, rotulo: strings.nav.record, Icone: Route },

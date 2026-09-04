@@ -14,6 +14,8 @@
  */
 import { create } from 'zustand'
 
+import { flagsDesligadas, type FlagId } from '@/app/flags'
+import type { GateId } from '@/data/gates'
 import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
 import { PLAYBOOK_VERSION } from '@/data/playbook'
 import type { Cycle } from '@/data/scope'
@@ -78,6 +80,21 @@ export interface SimulationState {
    */
   readonly verificacoesFiori: Readonly<Record<string, Signature>>
   registrarVerificacaoFiori: (id: string, note?: string) => void
+  /**
+   * Assinaturas dos Gates que não são checkpoint da esteira: a execução da carga
+   * (G5) e o aceite da onda (G7). Os checkpoints continuam sendo assinados onde
+   * a evidência é revisada — o Gate mostra a trilha e leva até lá.
+   */
+  readonly assinaturasDeGate: Readonly<Partial<Record<GateId, Signature>>>
+  /**
+   * Assina o Gate. G4 e G6 caem nas assinaturas da esteira, que são as mesmas
+   * usadas pelo motor; G5 e G7 ficam fora dela. Gate assinado em outra tela é
+   * no-op aqui — a decisão pertence a quem revisa a evidência.
+   */
+  assinarGate: (gate: GateId, decision: Decision, note?: string) => void
+  /** Flags de demonstração, ligadas por parâmetro de URL. Não persistem. */
+  readonly flags: Readonly<Record<FlagId, boolean>>
+  ligarFlags: (ids: readonly FlagId[]) => void
   reset: () => void
 }
 
@@ -88,6 +105,9 @@ export const signatories = {
   duplicatas: { by: 'Ana Ribeiro', role: 'Verene · Suprimentos' },
   excecoes: { by: 'Carlos Menezes', role: 'Verene · Fiscal' },
   pacote: { by: 'Helena Duarte', role: 'Verene · Data owner' },
+  /** Gates fora da esteira: a carga é executada pela Verene, não pela Monoda. */
+  carga: { by: 'Tiago Fontes', role: 'Verene · Basis' },
+  aceite: { by: 'Helena Duarte', role: 'Verene · Data owner' },
 } as const
 
 /**
@@ -96,6 +116,7 @@ export const signatories = {
  */
 function sign(
   quem: { readonly by: string; readonly role: string },
+  playbookVersion: string,
   decision: Decision,
   note?: string,
 ): Signature {
@@ -104,6 +125,7 @@ function sign(
     role: quem.role,
     decision,
     at: simInstant().toISOString(),
+    playbookVersion,
     note: note ?? null,
   }
 }
@@ -118,6 +140,8 @@ function derivar(spe: SpeFilter, playbookVersion: string, approvals: Approvals):
 
 const ESTADO_INICIAL = {
   verificacoesFiori: {} as Readonly<Record<string, Signature>>,
+  assinaturasDeGate: {} as Readonly<Partial<Record<GateId, Signature>>>,
+  flags: flagsDesligadas,
   spe: 'SPE-1' as SpeFilter,
   ciclo: 'ciclo-1' as Cycle,
   playbookVersion: PLAYBOOK_VERSION,
@@ -150,12 +174,12 @@ export const useSimulation = create<SimulationState>((set, get) => {
 
     approveMappingSme: (decision, note) =>
       recomputar({
-        approvals: { ...get().approvals, mapeamentoSme: sign(signatories.mapeamentoSme, decision, note) },
+        approvals: { ...get().approvals, mapeamentoSme: sign(signatories.mapeamentoSme, get().playbookVersion, decision, note) },
       }),
 
     approveMapping: (decision, note) =>
       recomputar({
-        approvals: { ...get().approvals, mapeamento: sign(signatories.mapeamento, decision, note) },
+        approvals: { ...get().approvals, mapeamento: sign(signatories.mapeamento, get().playbookVersion, decision, note) },
       }),
 
     confirmCluster: (clusterId, decision, note) =>
@@ -164,7 +188,7 @@ export const useSimulation = create<SimulationState>((set, get) => {
           ...get().approvals,
           clusters: {
             ...get().approvals.clusters,
-            [clusterId]: sign(signatories.duplicatas, decision, note),
+            [clusterId]: sign(signatories.duplicatas, get().playbookVersion, decision, note),
           },
         },
       }),
@@ -177,6 +201,7 @@ export const useSimulation = create<SimulationState>((set, get) => {
             ...get().approvals.clusters,
             [clusterId]: sign(
               signatories.duplicatas,
+              get().playbookVersion,
               'rejected',
               note ?? 'Cluster dividido: os cadastros seguem separados.',
             ),
@@ -190,38 +215,71 @@ export const useSimulation = create<SimulationState>((set, get) => {
           ...get().approvals,
           excecoes: {
             ...get().approvals.excecoes,
-            [exceptionId]: sign(signatories.excecoes, decision, note),
+            [exceptionId]: sign(signatories.excecoes, get().playbookVersion, decision, note),
           },
         },
       }),
 
     approvePackage: (decision, note) =>
       recomputar({
-        approvals: { ...get().approvals, pacote: sign(signatories.pacote, decision, note) },
+        approvals: { ...get().approvals, pacote: sign(signatories.pacote, get().playbookVersion, decision, note) },
       }),
 
     approveReconciliation: (decision, note) =>
       recomputar({
-        approvals: { ...get().approvals, reconciliacao: sign(signatories.pacote, decision, note) },
+        approvals: { ...get().approvals, reconciliacao: sign(signatories.pacote, get().playbookVersion, decision, note) },
       }),
 
     confirmAllClusters: (decision) => {
-      const assinatura = sign(signatories.duplicatas, decision)
+      const assinatura = sign(signatories.duplicatas, get().playbookVersion, decision)
       const clusters = Object.fromEntries(get().run.clusters.map((c) => [c.id, assinatura]))
       recomputar({ approvals: { ...get().approvals, clusters } })
     },
 
     decideAllExceptions: (decision) => {
-      const assinatura = sign(signatories.excecoes, decision)
+      const assinatura = sign(signatories.excecoes, get().playbookVersion, decision)
       const excecoes = Object.fromEntries(get().run.exceptions.map((e) => [e.id, assinatura]))
       recomputar({ approvals: { ...get().approvals, excecoes } })
+    },
+
+    assinarGate: (gate, decision, note) => {
+      if (gate === 'G4') {
+        recomputar({
+          approvals: { ...get().approvals, pacote: sign(signatories.pacote, get().playbookVersion, decision, note) },
+        })
+        return
+      }
+      if (gate === 'G6') {
+        recomputar({
+          approvals: {
+            ...get().approvals,
+            reconciliacao: sign(signatories.pacote, get().playbookVersion, decision, note),
+          },
+        })
+        return
+      }
+      if (gate !== 'G5' && gate !== 'G7') return
+      const quem = gate === 'G5' ? signatories.carga : signatories.aceite
+      set({
+        assinaturasDeGate: {
+          ...get().assinaturasDeGate,
+          [gate]: sign(quem, get().playbookVersion, decision, note),
+        },
+      })
+    },
+
+    ligarFlags: (ids) => {
+      if (ids.length === 0) return
+      const atuais = get().flags
+      if (ids.every((id) => atuais[id])) return
+      set({ flags: { ...atuais, ...Object.fromEntries(ids.map((id) => [id, true])) } })
     },
 
     registrarVerificacaoFiori: (id, note) =>
       set({
         verificacoesFiori: {
           ...get().verificacoesFiori,
-          [id]: sign(signatories.pacote, 'approved', note),
+          [id]: sign(signatories.pacote, get().playbookVersion, 'approved', note),
         },
       }),
 
