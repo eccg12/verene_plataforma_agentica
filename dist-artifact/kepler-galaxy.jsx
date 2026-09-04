@@ -24,7 +24,7 @@ import {
   AlertTriangle, ArrowLeft, ArrowRight, Boxes, Check, ChevronDown, ChevronRight, CircleDot,
   ClipboardCheck, Copy, Database, FileText, Fingerprint, Flag, GitBranch, Layers, Lock,
   Minus, Network, Package, PenLine, Play, RefreshCw, Scale, Search, Shield, SplitSquareHorizontal,
-  Table2, Target, Users, X, Zap,
+  Compass, Pause, Table2, Target, Users, X, Zap,
 } from 'lucide-react'
 
 /* ========================================================================== */
@@ -634,6 +634,38 @@ const T = {
     atalhos: 'Atalhos',
     atalhoLista: 'P entra e sai · ← → navega · N abre as notas · R reinicia · Esc fecha',
     iniciar: 'Iniciar roteiro',
+  },
+  /**
+   * A camada narrada. Conduz quem ASSISTE, sem alguém falando por cima — é a
+   * diferença para `apresentacao`, que conduz quem apresenta.
+   */
+  narrativa: {
+    tituloDoModo: 'Apresentação guiada',
+    cena: 'Cena',
+    de: 'de',
+    proxima: 'Próxima cena',
+    anterior: 'Cena anterior',
+    reiniciar: 'Voltar ao início',
+    explorar: 'Explorar livremente',
+    retomar: 'Retomar apresentação',
+    retomarNota: 'Volta na cena onde você parou.',
+    tocar: 'Reproduzir sozinho',
+    pausar: 'Pausar',
+    automatico: 'Modo automático',
+    notas: 'Nota do apresentador',
+    avancarDica: 'Clique, seta ou barra de espaço para avançar',
+    telaAoFundo: 'A tela ao fundo é real e está funcionando.',
+    encerrar: 'Terminar e explorar',
+    fim: 'Fim da apresentação',
+    fimNota:
+      'Você viu o problema, os sete agentes, a esteira, os dois momentos e como o aceite é medido. A partir daqui a ferramenta é sua.',
+    agente: {
+      especialidade: 'Especialidade',
+      oQueFaz: 'O que faz',
+      recebe: 'Recebe',
+      entrega: 'Entrega',
+      assina: 'Quem responde por ele',
+    },
   },
   momento1: {
     titulo: 'Propagação da correção',
@@ -3532,6 +3564,352 @@ const contarPorEstado = (pacotes) =>
 
 
 /* ========================================================================== */
+/* 8b. A CAMADA NARRADA — quinze cenas em cinco atos                          */
+/* ========================================================================== */
+
+/**
+ * O modo de apresentação conduz QUEM APRESENTA. Esta camada conduz QUEM
+ * ASSISTE, sem intermediário: numa apresentação o espectador não sabe o que
+ * procurar e se perde, e um protótipo que funciona como produto não se explica
+ * sozinho.
+ *
+ * REGRA DE ESCRITA DOS BULLETS. Frase curta. Nada de jargão de SAP sem
+ * explicação junto, nada de palavra inventada. "Lê os arquivos que chegaram e
+ * mede o estado de cada campo" — não "executa profiling multidimensional".
+ *
+ * A camada não reconstrói nada: navega pelas rotas que já existem, lê o roteiro
+ * e ilumina um elemento pelo atributo `data-cena` que as telas carregam.
+ */
+const atos = ['abertura', 'agentes', 'esteira', 'momentos', 'fechamento']
+const rotuloDoAto = {
+  abertura: 'O problema',
+  agentes: 'Os agentes',
+  esteira: 'A esteira',
+  momentos: 'Os dois momentos',
+  fechamento: 'O aceite',
+}
+
+const cenas = [
+
+  // ============================================================ ABERTURA
+  {
+    n: 1,
+    id: 'problema',
+    ato: 'abertura',
+    titulo: 'Quatro empresas, quatro cadastros, um sistema só',
+    bullets: [
+      'A Verene comprou quatro empresas. Cada uma tem o próprio sistema antigo e o próprio jeito de cadastrar fornecedor, material e contrato.',
+      'Tudo isso precisa entrar no sistema novo da Verene — e duas vezes: uma de ensaio, outra pra valer, na virada.',
+      'São 2.080 registros em 48 pacotes de carga. Registro errado não dá erro na hora: aparece meses depois, no fechamento fiscal.',
+    ],
+    path: '/mission-control',
+    destaque: '[data-cena="grade-pacotes"]',
+    notaDoApresentador:
+      'A grade é derivada do escopo, não digitada: seis objetos × quatro empresas × dois ciclos. Se perguntarem por que pedidos, requisições e estoque estão como "não iniciado": não há extrato desses três ainda, e declarar estado de dado que não existe seria inventar.',
+    nivel: NIVEIS.nada,
+    duracao: 34,
+  },
+  {
+    n: 2,
+    id: 'cadeia',
+    ato: 'abertura',
+    titulo: 'Três partes, e onde a Monoda está',
+    bullets: [
+      'Quem produziu o dado é a Verene, nos sistemas das empresas compradas. Dado que chega errado de lá continua sendo dela.',
+      'Quem recebe o dado é o sistema novo, configurado pela Verene junto com o integrador. O que ele exige fora do padrão é decisão dela.',
+      'A Monoda fica no meio e responde pela travessia: a regra que move o dado de um lado para o outro. Nos outros três casos ela detecta, evidencia e encaminha — não responde pelo defeito.',
+    ],
+    path: '/reconciliation',
+    destaque: '[data-cena="defeitos-por-origem"]',
+    notaDoApresentador:
+      'Esta é a conversa que consome projeto de migração: não "tem defeito?", mas "de quem é este defeito?". A taxonomia é acordada antes, e por isso a tela separa visualmente o que é da Monoda do que é de terceiros.',
+    nivel: NIVEIS.duplicatas,
+    duracao: 36,
+  },
+  {
+    n: 3,
+    id: 'kepler',
+    ato: 'abertura',
+    titulo: 'O que é a KEPLER',
+    bullets: [
+      'A regra de negócio vive num lugar só, versionada, e os agentes a executam — nenhum agente decide por conta própria.',
+      'Toda decisão que a máquina não pode tomar sozinha para numa fila, com uma pessoa de nome e sobrenome do lado.',
+      'No fim, cada campo de cada registro tem a trilha inteira: de onde veio o valor, que regra o mudou, em que versão da regra.',
+    ],
+    path: `/record/${CASO_FORNECEDOR}`,
+    destaque: '[data-cena="trilha"]',
+    notaDoApresentador:
+      'Uma frase só, se precisar resumir: a KEPLER é a esteira que leva o dado do sistema antigo ao novo com a regra escrita fora do código e a decisão humana onde ela é obrigatória.',
+    nivel: NIVEIS.excecoes,
+    duracao: 32,
+  },
+
+  // ============================================================ AGENTES
+  {
+    n: 4,
+    id: 'vega',
+    ato: 'agentes',
+    agente: 'VEGA',
+    titulo: 'VEGA recebe e mede',
+    cartao: {
+      especialidade: 'Recepção e perfilagem',
+      oQueFaz: 'Lê os arquivos que chegaram e mede o estado de cada campo.',
+      recebe: 'Os arquivos de extração das quatro empresas.',
+      entrega: 'O recibo do que chegou de fato e o mapa do que está errado.',
+    },
+    bullets: [
+      'Conta os registros do arquivo e compara com o número que o fornecedor da extração declarou. Quando não bate, o recibo sai com ressalva.',
+      'Mede campo a campo: quantos vieram em branco, quantos vieram num formato diferente do resto, quantos têm número que não fecha.',
+      'Não corrige nada. Só registra o que existe — corrigir calado aqui seria assumir a autoria do número.',
+    ],
+    path: '/mission-control',
+    destaque: '[data-cena="recebimento"]',
+    notaDoApresentador:
+      'A contagem e a impressão digital do arquivo são calculadas do conteúdo, não repetidas do que o vendor disse. É isso que faz o recibo valer alguma coisa.',
+    nivel: NIVEIS.nada,
+    duracao: 34,
+  },
+  {
+    n: 5,
+    id: 'lyra',
+    ato: 'agentes',
+    agente: 'LYRA',
+    titulo: 'LYRA lê o sistema de destino',
+    cartao: {
+      especialidade: 'Mapeamento contra o tenant',
+      oQueFaz: 'Monta o de-para campo a campo contra a configuração que está ligada hoje no sistema novo.',
+      recebe: 'Os campos do sistema antigo e a configuração ativa do sistema novo.',
+      entrega: 'O dicionário de mapeamento e a lista de onde a Verene fez diferente do padrão.',
+    },
+    bullets: [
+      'Não mapeia contra o SAP de fábrica: mapeia contra o que está ativo no sistema da Verene hoje.',
+      'Onde a Verene configurou algo fora do padrão, a divergência aparece nomeada. É aí que a carga costuma quebrar — e sempre tarde.',
+      'Nenhuma conversão roda antes de o de-para ser aprovado por duas pessoas.',
+    ],
+    path: '/mapping',
+    destaque: '[data-cena="dicionario"]',
+    notaDoApresentador:
+      'A coluna do domínio de valor é lida da configuração viva. Não existe tabela paralela mantida à mão — há teste garantindo que toda regra, todo domínio e toda divergência citados existem de fato.',
+    nivel: NIVEIS.nada,
+    duracao: 34,
+  },
+  {
+    n: 6,
+    id: 'atlas',
+    ato: 'agentes',
+    agente: 'ATLAS',
+    titulo: 'ATLAS converte e agrupa',
+    cartao: {
+      especialidade: 'Transformação e deduplicação',
+      oQueFaz: 'Converte cada valor para o formato do destino e agrupa os cadastros que são a mesma empresa.',
+      recebe: 'Os registros mapeados e as regras de conversão publicadas.',
+      entrega: 'Os valores convertidos e os grupos de duplicata, com o racional de cada um.',
+    },
+    bullets: [
+      'Acha o mesmo fornecedor cadastrado em mais de uma das empresas compradas, com a razão social escrita de jeitos diferentes.',
+      'Propõe qual dos cadastros sobrevive e mostra os sinais que sustentam a proposta, um a um, com o peso de cada um.',
+      'Não funde nada sozinho. Quem junta dois cadastros é uma pessoa, e o código aposentado continua visível depois.',
+    ],
+    path: '/review/duplicates',
+    destaque: '[data-cena="clusters"]',
+    notaDoApresentador:
+      'O número que aparece como score é a soma dos pesos dos sinais que conferem — não um número solto de um modelo. Abrir um cluster mostra os sinais somando.',
+    nivel: NIVEIS.mapeamento,
+    duracao: 36,
+  },
+  {
+    n: 7,
+    id: 'nova',
+    ato: 'agentes',
+    agente: 'NOVA',
+    titulo: 'NOVA preenche o que tem como preencher',
+    cartao: {
+      especialidade: 'Enriquecimento e validação',
+      oQueFaz: 'Completa o que dá para completar com fonte de referência e valida o resto contra as regras do negócio.',
+      recebe: 'Os registros convertidos e as tabelas de referência.',
+      entrega: 'Os valores propostos com a fonte anexada, e a fila de exceções com dono e prazo.',
+    },
+    bullets: [
+      'Quando falta o código do município, busca na tabela do IBGE e anexa a linha que sustenta o valor.',
+      'Onde não há fonte que sustente o valor, não propõe nada — e escreve na tela por quê. É o caso do CNAE.',
+      'O que não passa na validação fica retido, com o motivo e a pessoa a quem foi encaminhado.',
+    ],
+    path: '/review/exceptions',
+    destaque: '[data-cena="enriquecimento"]',
+    notaDoApresentador:
+      'Não existe "aplicar valor padrão" em lugar nenhum desta tela, de propósito. Preencher por padrão é exatamente o que produz base suja com aparência de limpa.',
+    nivel: NIVEIS.duplicatas,
+    duracao: 36,
+  },
+  {
+    n: 8,
+    id: 'orion',
+    ato: 'agentes',
+    agente: 'ORION',
+    titulo: 'ORION monta o pacote',
+    cartao: {
+      especialidade: 'Empacotamento',
+      oQueFaz: 'Gera o arquivo de carga a partir dos registros aprovados, e só deles.',
+      recebe: 'Os registros com decisão humana registrada.',
+      entrega: 'O arquivo, a divisão em partes e o cabeçalho que identifica o conteúdo.',
+    },
+    bullets: [
+      'Carimba no cabeçalho a versão da regra e uma impressão digital do conteúdo. É isso que prova, depois da carga, qual regra gerou qual registro.',
+      'Divide o pacote pelos dois limites da ferramenta de carga: tamanho do arquivo e número de registros por lote.',
+      'Confere tamanho de campo, formato e obrigatoriedade antes de entregar. Liberar uma exceção não lava o dado.',
+    ],
+    path: '/packages',
+    destaque: '[data-cena="manifest"]',
+    notaDoApresentador:
+      'O arquivo é gerado dos registros de fato, não é texto de exemplo. O tamanho por registro é medido nele, e a divisão em partes é aritmética sobre esse número.',
+    nivel: NIVEIS.excecoes,
+    duracao: 34,
+  },
+  {
+    n: 9,
+    id: 'sirius',
+    ato: 'agentes',
+    agente: 'SIRIUS',
+    titulo: 'SIRIUS fecha a conta',
+    cartao: {
+      especialidade: 'Reconciliação',
+      oQueFaz: 'Confere que o que entrou é igual ao que saiu, mais o que ficou retido.',
+      recebe: 'A contagem da origem e o resultado do destino.',
+      entrega: 'A reconciliação com toda diferença explicada e o registro de defeitos por origem.',
+    },
+    bullets: [
+      'Reconcilia por contagem e, onde há dinheiro envolvido, também por valor.',
+      'Toda diferença vem com a causa nomeada. Diferença sem explicação é registro perdido que ninguém procurou.',
+      'Separa os defeitos por origem, para a conversa de responsabilidade não virar negociação no fim do projeto.',
+    ],
+    path: '/reconciliation',
+    destaque: '[data-cena="contagem"]',
+    notaDoApresentador:
+      'Valor só aparece onde há montante: contratos. Fornecedor é cadastro e não tem valor — inventar um para preencher a tela seria número que não sobrevive a uma pergunta.',
+    nivel: NIVEIS.excecoes,
+    duracao: 34,
+  },
+  {
+    n: 10,
+    id: 'kanon',
+    ato: 'agentes',
+    agente: 'KANON',
+    titulo: 'KANON guarda a regra',
+    cartao: {
+      especialidade: 'Governança do playbook',
+      oQueFaz: 'Publica e sela a versão das regras, e é o único caminho por onde um agente chega a uma regra.',
+      recebe: 'As regras escritas, com dono e justificativa.',
+      entrega: 'A versão selada, a documentação gerada dela e a recusa de tudo que não estiver publicado.',
+    },
+    bullets: [
+      'Não ocupa passo nenhum da esteira. Cuida da regra, o tempo todo.',
+      'Recusa três coisas: regra que não está publicada naquela versão, regra ainda não aprovada por um humano, e regra de um agente pedida por outro.',
+      'Corrigir uma regra não é editar código: é publicar uma redação nova numa versão nova, e a trilha antiga continua válida.',
+    ],
+    path: '/playbook',
+    destaque: '[data-cena="selo"]',
+    notaDoApresentador:
+      'É por construção, não por disciplina: a esteira inteira só altera registro através de um único ponto, e esse ponto passa por aqui. Sem isso, "os agentes seguem o playbook" seria promessa.',
+    nivel: NIVEIS.nada,
+    duracao: 36,
+  },
+
+  // ============================================================ ESTEIRA
+  {
+    n: 11,
+    id: 'esteira',
+    ato: 'esteira',
+    titulo: 'Um registro atravessando os nove passos',
+    bullets: [
+      'Este fornecedor chegou, foi medido, mapeado, convertido, comparado com os outros, completado, validado, empacotado e conferido.',
+      'Cada linha da trilha diz qual regra tocou o campo, em que versão e em que instante. O identificador da regra abre a regra.',
+      'É isso que permite responder, seis meses depois da carga: por que este campo está com este valor?',
+    ],
+    path: `/record/${CASO_FORNECEDOR}`,
+    destaque: '[data-cena="trilha"]',
+    notaDoApresentador:
+      'A linha de contrato roda pela mesma esteira, com o mesmo guarda — é o objeto com mais regra por registro do escopo. Se a esteira atende esse, atende os fáceis.',
+    nivel: NIVEIS.excecoes,
+    duracao: 34,
+  },
+  {
+    n: 12,
+    id: 'checkpoints',
+    ato: 'esteira',
+    titulo: 'Quatro vezes em que a máquina para e espera',
+    bullets: [
+      'Depois do mapeamento: duas assinaturas distintas, a aprovação técnica e a do dono do dado. Uma não substitui a outra.',
+      'Depois da deduplicação: cada grupo de duplicata é confirmado um a um. Não existe aprovação em lote.',
+      'Depois da validação: cada exceção recebe decisão humana. E, no fim, o pacote e a conta final.',
+    ],
+    path: '/gates',
+    destaque: '[data-cena="gates-rail"]',
+    notaDoApresentador:
+      'Não é atrito de interface: sem a assinatura o passo seguinte nem roda, e a tela mostra a esteira parada. É o mesmo motor que move o resto.',
+    nivel: NIVEIS.excecoes,
+    duracao: 34,
+  },
+
+  // ============================================================ MOMENTOS
+  {
+    n: 13,
+    id: 'velocidade',
+    ato: 'momentos',
+    titulo: 'Defeito achado na sexta, reenviado na sexta',
+    bullets: [
+      'A regra que encurta o nome longo do fornecedor estava cortando no meio da palavra.',
+      'O defeito não é do dado: é da regra. Aprovar o registro assim só carimbaria o corte errado.',
+      'Corrige-se a regra, publica-se uma versão nova, e a onda inteira é refeita — em minutos, não numa nova rodada de extração.',
+    ],
+    path: `${'/playbook'}?regra=${REGRA_DA_CORRECAO}`,
+    destaque: '[data-cena="correcao"]',
+    notaDoApresentador:
+      'Quem encontrou o corte errado foi outra regra, de outro agente, independente da que quebra. Se as duas viessem do mesmo raciocínio, o defeito passaria pelas duas.',
+    nivel: NIVEIS.excecoes,
+    duracao: 38,
+  },
+  {
+    n: 14,
+    id: 'contencao',
+    ato: 'momentos',
+    titulo: 'O limite honesto da tecnologia',
+    bullets: [
+      'Duas pessoas prestam serviço para mais de uma das empresas compradas, com o mesmo documento — e o imposto retido é diferente em cada uma.',
+      'O agente mostra os registros, a frequência e a hipótese do que explicaria isso. E para.',
+      'Um agente consegue evidenciar que uma regra provavelmente existe. Ele não consegue confirmar que a regra está correta.',
+    ],
+    path: '/review/candidate',
+    destaque: '[data-cena="evidencia-candidata"]',
+    notaDoApresentador: `Confirmar não executa a regra: ${REGRA_CANDIDATA} continua sendo proposta, e promover é ato de governança numa versão nova. Este é o momento que mais compra confiança — não corra.`,
+    nivel: NIVEIS.excecoes,
+    duracao: 38,
+  },
+
+  // ============================================================ FECHAMENTO
+  {
+    n: 15,
+    id: 'aceite',
+    ato: 'fechamento',
+    titulo: 'O que foi combinado, medido',
+    bullets: [
+      'Quatro critérios de aceite, cada um medido num ponto definido do projeto, com a frase de como o número foi obtido ao lado.',
+      'Oito pontos de decisão. Cada um aprova um documento nomeado, e o seguinte não abre enquanto o anterior não estiver assinado.',
+      'Cada assinatura registra quem, quando e sobre qual versão de regra. Sem a versão, "revisado e aprovado" não diz o que foi revisado.',
+    ],
+    path: '/reconciliation',
+    destaque: '[data-cena="placar"]',
+    notaDoApresentador:
+      'Os dois critérios de defeito medem apenas a origem pela qual a Monoda responde. Defeito das outras três origens tem dono nomeado e conta na conversa com esse dono, não aqui.',
+    nivel: NIVEIS.carga,
+    duracao: 34,
+  },
+]
+
+const TOTAL_DE_CENAS = cenas.length
+const cenaPorNumero = (n) => cenas.find((c) => c.n === n) ?? cenas[0]
+
+
+/* ========================================================================== */
 /* 9. NÚCLEO DETERMINÍSTICO                                                   */
 /* ========================================================================== */
 
@@ -5618,6 +5996,11 @@ const ESTADO_INICIAL = {
   regeneracao: null,
   flags: { comercial: false },
   apresentacao: { ativa: false, passo: 1, notas: false },
+  /**
+   * A camada narrada é o estado INICIAL: o protótipo abre explicando-se. Sair é
+   * uma escolha ("Explorar livremente"), e retomar volta na cena onde parou.
+   */
+  narrativa: { ativa: true, cena: 1, automatico: false, pausado: false, cenaAoSair: 1, encerrada: false },
 }
 
 const comRun = (estado) => ({ ...estado, run: derivarRun(estado.spe, estado.playbookVersion, estado.approvals) })
@@ -5737,7 +6120,67 @@ function reducer(estado, acao) {
     // serve justamente para reapresentar sem recarregar. Volta ao passo 1.
     case 'reset':
       return comRun({ ...ESTADO_INICIAL,
-        apresentacao: { ...estado.apresentacao, passo: 1, notas: false } })
+        apresentacao: { ...estado.apresentacao, passo: 1, notas: false },
+        // Reiniciar a onda não derruba a narração: quem está assistindo continua
+        // na cena em que estava.
+        narrativa: estado.narrativa })
+
+    /* ---------- camada narrada ---------- */
+    /**
+     * Leva à cena `n` e deixa a onda no estado que ela precisa encontrar.
+     *
+     * Preparar não é fachada: `estadoDoNivel` assina exatamente o que um humano
+     * assinaria, com os mesmos papéis e o mesmo instante determinístico. A cena
+     * 11 afirma que um registro atravessou os nove passos — com a esteira parada
+     * no passo 3 a trilha está pela metade e a cena mentiria.
+     */
+    case 'cena': {
+      const alvo = Math.min(Math.max(acao.n, 1), TOTAL_DE_CENAS)
+      const cena = cenaPorNumero(alvo)
+      const preparado = estadoDoNivel(cena.nivel)
+      return comRun({
+        ...estado,
+        rota: cena.path,
+        // O recorte abre em "todas" e a narrativa fala das quatro SPEs o tempo
+        // todo; as filas de revisão são cross-SPE por natureza.
+        spe: 'todas',
+        playbookVersion: preparado.playbookVersion,
+        approvals: preparado.approvals,
+        assinaturasDeGate: preparado.assinaturasDeGate,
+        regeneracao: cena.nivel >= NIVEIS.corrigido
+          ? { de: PLAYBOOK_VERSION, para: PROXIMA_VERSAO, approvalsDe: estadoDoNivel(NIVEIS.excecoes).approvals }
+          : null,
+        narrativa: { ...estado.narrativa, cena: alvo, encerrada: false },
+      })
+    }
+    // Passar da última cena não sai à força: abre o encerramento, com a escolha
+    // de rever ou explorar.
+    case 'cena-proxima': {
+      const { cena } = estado.narrativa
+      if (cena >= TOTAL_DE_CENAS) {
+        return { ...estado, narrativa: { ...estado.narrativa, encerrada: true, pausado: true } }
+      }
+      return reducer(estado, { tipo: 'cena', n: cena + 1 })
+    }
+    case 'cena-anterior': {
+      if (estado.narrativa.encerrada) {
+        return { ...estado, narrativa: { ...estado.narrativa, encerrada: false } }
+      }
+      return reducer(estado, { tipo: 'cena', n: estado.narrativa.cena - 1 })
+    }
+    case 'narrativa-explorar':
+      return { ...estado, narrativa: { ...estado.narrativa, ativa: false, automatico: false,
+        cenaAoSair: estado.narrativa.cena } }
+    case 'narrativa-retomar':
+      return reducer(
+        { ...estado, narrativa: { ...estado.narrativa, ativa: true, pausado: false, encerrada: false } },
+        { tipo: 'cena', n: estado.narrativa.cenaAoSair },
+      )
+    case 'narrativa-automatico':
+      return { ...estado, narrativa: { ...estado.narrativa,
+        automatico: !estado.narrativa.automatico, pausado: false } }
+    case 'narrativa-pausa':
+      return { ...estado, narrativa: { ...estado.narrativa, pausado: !estado.narrativa.pausado } }
     default:
       return estado
   }
@@ -5759,9 +6202,10 @@ function Surface({ tipo = 'ink', className = '', children }) {
   return <div className={`${tipo === 'paper' ? 'k-paper' : 'k-ink'} ${className}`}>{children}</div>
 }
 
-function Section({ titulo, nota, acao, children, className = '' }) {
+function Section({ titulo, nota, acao, children, className = '', cena }) {
+  // `cena` é a âncora da camada narrada: um atributo, nenhuma mudança de layout.
   return (
-    <section className={`mb-5 ${className}`}>
+    <section data-cena={cena} className={`mb-5 ${className}`}>
       <div className="flex items-start justify-between gap-4 mb-2">
         <div className="min-w-0">
           <h2 className="k-caps k-text text-[11px] font-semibold">{titulo}</h2>
@@ -5774,8 +6218,8 @@ function Section({ titulo, nota, acao, children, className = '' }) {
   )
 }
 
-function Card({ children, className = '' }) {
-  return <div className={`k-bg-raised border k-bd ${className}`}>{children}</div>
+function Card({ children, className = '', cena }) {
+  return <div data-cena={cena} className={`k-bg-raised border k-bd ${className}`}>{children}</div>
 }
 
 function Botao({ children, onClick, variante = 'ghost', disabled = false, titulo, icone: Icone }) {
@@ -5821,10 +6265,14 @@ function Kpi({ rotulo, valor, sufixo, nota, destaque = false }) {
   )
 }
 
-function Tabela({ colunas, children, className = '' }) {
+function Tabela({ colunas, children, className = '', cena }) {
   return (
-    <div className={`k-scroll border k-bd ${className}`}>
-      <table className="w-full text-[12px]">
+    <div data-cena={cena} className={`k-scroll border k-bd ${className}`}>
+      {/* Piso de largura: com o painel narrado ocupando parte da tela, sem ele a
+          tabela esmaga a coluna mais longa em uma palavra por linha. Rolar dentro
+          do próprio contêiner é o comportamento certo — o corpo da página nunca
+          rola de lado. */}
+      <table className="w-full min-w-[900px] text-[12px]">
         <thead><tr>{colunas.map((c) => <th key={c} className="k-th">{c}</th>)}</tr></thead>
         <tbody>{children}</tbody>
       </table>
@@ -5883,7 +6331,7 @@ function MissionControlScreen({ estado, ir }) {
 
   return (
     <div>
-      <Section titulo={T.missionControl.escopo} nota={T.missionControl.escopoNota}>
+      <Section titulo={T.missionControl.escopo} nota={T.missionControl.escopoNota} cena="grade-pacotes">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
           <Kpi rotulo={T.demo.escopoReal} valor={numeroBr(scopeSummary.volumeTotal)} sufixo={T.missionControl.volumeReferencia} destaque />
           <Kpi rotulo={T.nav.packages} valor={numeroBr(scopeSummary.pacotes)} sufixo={T.missionControl.pacotes} destaque />
@@ -5945,7 +6393,7 @@ function MissionControlScreen({ estado, ir }) {
         </div>
       </Section>
 
-      <Section titulo={T.missionControl.recebimento} nota={T.missionControl.recebimentoNota}>
+      <Section titulo={T.missionControl.recebimento} nota={T.missionControl.recebimentoNota} cena="recebimento">
         <Tabela colunas={[T.missionControl.arquivo, T.missionControl.declarados, T.missionControl.lidos,
           T.missionControl.layout, 'fingerprint', T.missionControl.recibo]}>
           {recebimentos.map((r) => (
@@ -6131,7 +6579,7 @@ function PlaybookScreen({ estado, dispatch, ir, regraSelecionada }) {
 
   return (
     <Surface tipo="paper" className="p-4 border k-bd">
-      <header className="mb-4">
+      <header className="mb-4" data-cena="selo">
         <h1 className="text-[17px] k-text font-semibold">{T.playbook.titulo}</h1>
         <p className="k-text-muted text-[12px] mt-1 max-w-3xl">{T.playbook.subtitulo}</p>
         <div className="flex flex-wrap items-center gap-4 mt-3 text-[11px]">
@@ -6264,7 +6712,7 @@ function PlaybookScreen({ estado, dispatch, ir, regraSelecionada }) {
               </dl>
 
               {correcao ? (
-                <div className="mt-3 border k-bd-strong p-2.5 k-s-held">
+                <div className="mt-3 border k-bd-strong p-2.5 k-s-held" data-cena="correcao">
                   <div className="text-[11px] font-semibold k-caps">{T.playbook.correcaoTitulo}</div>
                   <p className="text-[11.5px] mt-1 leading-relaxed">
                     {fmt(T.playbook.correcaoNota, { versao: correcao.versao })}
@@ -6360,7 +6808,7 @@ function MappingScreen({ estado, dispatch, ir }) {
         ))}
       </div>
 
-      <Tabela colunas={[T.mapping.campoOrigem, T.mapping.campoDestino, T.mapping.valueDomain,
+      <Tabela cena="dicionario" colunas={[T.mapping.campoOrigem, T.mapping.campoDestino, T.mapping.valueDomain,
         T.mapping.regra, T.mapping.divergencia, T.mapping.obrigatorio]}>
         {linhas.map((m) => {
           const dominio = m.valueDomainId ? valueDomainById[m.valueDomainId] : null
@@ -6446,7 +6894,7 @@ function MappingScreen({ estado, dispatch, ir }) {
  */
 function TrilhaTabela({ trail, ir }) {
   return (
-    <Tabela colunas={['#', T.record.passo, T.comum.agente, T.comum.regra, T.shell.versaoPlaybook,
+    <Tabela cena="trilha" colunas={['#', T.record.passo, T.comum.agente, T.comum.regra, T.shell.versaoPlaybook,
       T.comum.campo, T.record.antes, T.record.depois, T.record.instante]}>
       {trail.map((t) => (
         <tr key={t.seq} className="k-row align-top">
@@ -6657,7 +7105,7 @@ function DuplicatesScreen({ estado, dispatch, ir }) {
 
   return (
     <div>
-      <Section titulo={T.duplicates.fila} nota={T.duplicates.scoreNota}>
+      <Section titulo={T.duplicates.fila} nota={T.duplicates.scoreNota} cena="clusters">
         {run.clusters.length === 0 ? <Vazio texto={T.duplicates.semCluster} /> : (
           <div className="space-y-2">
             {run.clusters.map((c) => {
@@ -6862,7 +7310,7 @@ function ExceptionsScreen({ estado, dispatch, ir }) {
         )}
       </Section>
 
-      <Section titulo={T.exceptions.enriquecimento} nota={T.exceptions.enriquecimentoNota}>
+      <Section titulo={T.exceptions.enriquecimento} nota={T.exceptions.enriquecimentoNota} cena="enriquecimento">
         <Tabela colunas={[T.comum.registro, T.comum.campo, T.exceptions.proposta, T.exceptions.fonte, T.comum.regra]}>
           {propostas.map((p) => (
             <tr key={p.id} className="k-row align-top">
@@ -6969,7 +7417,7 @@ function CandidateRuleScreen({ estado, dispatch, ir }) {
   const f = caso.frequencia
   return (
     <div>
-      <Section titulo={T.candidate.caso}>
+      <Section titulo={T.candidate.caso} cena="evidencia-candidata">
         <div className="border k-bd-strong k-s-gate px-3 py-3 mb-4">
           <div className="text-[13px] leading-relaxed font-medium">{T.candidate.limite}</div>
         </div>
@@ -7131,7 +7579,7 @@ function PackagesScreen({ estado, dispatch, ir }) {
         <p className="k-text-muted text-[12px] mt-1 max-w-3xl">{T.packages.subtitulo}</p>
       </header>
 
-      <Section titulo={T.packages.manifestTitulo}>
+      <Section titulo={T.packages.manifestTitulo} cena="manifest">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           <Kpi rotulo={T.packages.playbookVersion} valor={manifest.playbookVersion} />
           <Kpi rotulo={T.packages.playbookChecksum} valor={manifest.playbookChecksum} />
@@ -7277,7 +7725,7 @@ function ReconciliationScreen({ estado, dispatch, ir }) {
 
   return (
     <div>
-      <Section titulo={T.reconciliation.porContagem}>
+      <Section titulo={T.reconciliation.porContagem} cena="contagem">
         <Tabela colunas={[T.shell.spe, T.comum.origem, T.comum.destino, T.comum.diferenca, T.comum.explicacao, T.comum.estado]}>
           {contagem.map((l) => <LinhaContagem key={l.chave} l={l} />)}
           <LinhaContagem l={total} />
@@ -7311,7 +7759,7 @@ function ReconciliationScreen({ estado, dispatch, ir }) {
         </Tabela>
       </Section>
 
-      <Section titulo={T.reconciliation.registroDefeitos}>
+      <Section titulo={T.reconciliation.registroDefeitos} cena="defeitos-por-origem">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
           {[true, false].map((monoda) => (
             <div key={String(monoda)}>
@@ -7368,7 +7816,7 @@ function ReconciliationScreen({ estado, dispatch, ir }) {
         </div>
       </Section>
 
-      <Section titulo={T.reconciliation.placar} nota={T.reconciliation.placarNota}>
+      <Section titulo={T.reconciliation.placar} nota={T.reconciliation.placarNota} cena="placar">
         <Tabela colunas={['#', T.comum.criterio, T.nav.gates, T.reconciliation.medido, T.reconciliation.alvo,
           T.comum.estado, T.reconciliation.comoMedido]}>
           {placar.map((p) => (
@@ -7455,7 +7903,7 @@ function GatesScreen({ estado, dispatch, ir }) {
 
   return (
     <div>
-      <Section titulo={T.gates.oitoGates}
+      <Section cena="gates-rail" titulo={T.gates.oitoGates}
         acao={flags.comercial
           ? <Botao icone={Scale} onClick={() => ir('/gates/payment')}>{T.nav.payment}</Botao>
           : null}>
@@ -7631,6 +8079,330 @@ function GatePaymentScreen({ estado, ir }) {
         <div className="mt-2"><Link para="/gates" ir={ir}>{T.nav.gates}</Link></div>
       </Section>
     </div>
+  )
+}
+
+
+/* ========================================================================== */
+/* 26b. A CAMADA NARRADA — foco, cartão do agente e painel                    */
+/* ========================================================================== */
+
+/**
+ * O foco sobre o elemento da cena.
+ *
+ * O escurecimento é a SOMBRA DO PRÓPRIO BURACO — uma sombra gigantesca para
+ * fora —, então não há duas camadas para manter em sincronia e não existe o
+ * instante em que a máscara e o brilho discordam.
+ *
+ * Se o seletor não encontrar nada, escurece a tela sem buraco e a cena segue:
+ * destaque quebrado nunca pode derrubar a narração na frente do cliente.
+ */
+const SOMBRA_DA_CENA = 'rgba(5, 5, 5, 0.66)'
+const MARGEM_DO_FOCO = 8
+
+function Spotlight({ seletor, chave }) {
+  const [recorte, setRecorte] = useState(null)
+
+  useEffect(() => {
+    // Sem seletor não há o que medir: a renderização devolve o escurecimento
+    // sem buraco e o efeito não mexe em estado nenhum.
+    if (!seletor) return undefined
+    let vivo = true
+    let quadro = 0
+
+    const medir = () => {
+      if (!vivo) return
+      const alvo = document.querySelector(seletor)
+      if (!alvo) { setRecorte(null); return }
+      const r = alvo.getBoundingClientRect()
+      setRecorte({
+        top: r.top - MARGEM_DO_FOCO, left: r.left - MARGEM_DO_FOCO,
+        width: r.width + MARGEM_DO_FOCO * 2, height: r.height + MARGEM_DO_FOCO * 2,
+      })
+    }
+
+    // A tela de fundo pode ter acabado de trocar: espera o elemento existir
+    // antes de desistir dele.
+    let tentativas = 0
+    const procurar = () => {
+      if (!vivo) return
+      const alvo = document.querySelector(seletor)
+      if (alvo) {
+        alvo.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        quadro = window.requestAnimationFrame(medir)
+        window.setTimeout(medir, 320)
+        return
+      }
+      if (tentativas > 24) { setRecorte(null); return }
+      tentativas += 1
+      quadro = window.requestAnimationFrame(procurar)
+    }
+    procurar()
+
+    window.addEventListener('resize', medir)
+    window.addEventListener('scroll', medir, true)
+    return () => {
+      vivo = false
+      window.cancelAnimationFrame(quadro)
+      window.removeEventListener('resize', medir)
+      window.removeEventListener('scroll', medir, true)
+    }
+  }, [seletor, chave])
+
+  if (!seletor || recorte === null) {
+    return <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-30"
+      style={{ backgroundColor: SOMBRA_DA_CENA }} />
+  }
+  return (
+    <div aria-hidden="true"
+      className="pointer-events-none fixed z-30 border k-t"
+      style={{
+        top: recorte.top, left: recorte.left, width: recorte.width, height: recorte.height,
+        borderColor: 'var(--k-accent)',
+        boxShadow: `0 0 0 100vmax ${SOMBRA_DA_CENA}, 0 0 0 1px var(--k-accent)`,
+        transition: 'top 150ms ease-out, left 150ms ease-out, width 150ms ease-out, height 150ms ease-out',
+      }} />
+  )
+}
+
+/**
+ * O cartão do agente — o ponto que o protótipo não tinha.
+ *
+ * Nas telas o agente aparece como rótulo em tabela e nunca é apresentado. Aqui
+ * ele responde as quatro perguntas de quem está vendo pela primeira vez. O
+ * revisor sai de `agents`, não do roteiro, para não haver duas verdades sobre
+ * quem assina — e fica na última linha de propósito: nenhum agente é
+ * accountable, quem responde é a pessoa.
+ */
+function AgentCard({ agente, cartao }) {
+  const t = T.narrativa.agente
+  const spec = agents.find((a) => a.name === agente)
+  const linhas = [
+    { rotulo: t.oQueFaz, valor: cartao.oQueFaz },
+    { rotulo: t.recebe, valor: cartao.recebe },
+    { rotulo: t.entrega, valor: cartao.entrega },
+  ]
+  return (
+    <article className="border k-bd-strong k-bg-sunken">
+      <header className="border-b k-bd px-3 py-2">
+        <div className="flex items-baseline gap-2">
+          <span className="text-[15px] font-semibold tracking-wide k-text-accent">{spec.name}</span>
+          <span className="text-[10px] k-caps k-text-subtle">{t.especialidade}</span>
+        </div>
+        <p className="mt-0.5 text-[12px] k-text">{cartao.especialidade}</p>
+      </header>
+      <dl className="px-3 py-2">
+        {linhas.map(({ rotulo, valor }) => (
+          <div key={rotulo} className="border-b k-bd py-1.5 first:pt-0 last:border-b-0 last:pb-0">
+            <dt className="text-[10px] k-caps k-text-subtle">{rotulo}</dt>
+            <dd className="mt-0.5 text-[12px] leading-snug k-text-muted">{valor}</dd>
+          </div>
+        ))}
+      </dl>
+      <footer className="border-t k-bd k-bg-raised px-3 py-2">
+        <p className="text-[10px] k-caps k-text-subtle">{t.assina}</p>
+        <p className="mt-0.5 text-[12px] k-text">{spec.revisor.nome}</p>
+        <p className="text-[10px] k-text-subtle">{spec.revisor.papel}</p>
+      </footer>
+    </article>
+  )
+}
+
+/** Barra de progresso das quinze cenas, agrupada pelos cinco atos. */
+function ProgressoDaNarrativa({ cena, dispatch }) {
+  return (
+    <nav aria-label={T.narrativa.tituloDoModo} className="flex items-end gap-2">
+      {atos.map((ato) => (
+        <div key={ato} className="min-w-0 flex-1">
+          <p className="truncate text-[9.5px] k-caps k-text-subtle">{rotuloDoAto[ato]}</p>
+          <div className="mt-1 flex gap-0.5">
+            {cenas.filter((c) => c.ato === ato).map((c) => (
+              <button key={c.n} type="button" aria-label={`${T.narrativa.cena} ${c.n}`}
+                aria-current={c.n === cena ? 'step' : undefined}
+                onClick={() => dispatch({ tipo: 'cena', n: c.n })}
+                className={`k-t h-1 min-w-0 flex-1 ${c.n === cena ? 'bg-current k-text-accent' : ''}`}
+                style={c.n === cena ? undefined
+                  : { backgroundColor: c.n < cena ? 'var(--k-border-strong)' : 'var(--k-border)' }} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </nav>
+  )
+}
+
+/**
+ * O corpo da cena: bullets em cascata, cartão do agente e a nota do apresentador.
+ *
+ * Vive num componente próprio e é remontado a cada cena pela `key`. É o que faz
+ * a cascata recomeçar e a nota fechar sozinhas na virada.
+ */
+const CASCATA_MS = 260
+
+function CorpoDaCena({ cena }) {
+  // Quem pediu menos movimento ao sistema recebe os bullets de uma vez.
+  const [visiveis, setVisiveis] = useState(() =>
+    (typeof window !== 'undefined'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+      ? cena.bullets.length
+      : 0)
+  const [verNota, setVerNota] = useState(false)
+
+  useEffect(() => {
+    if (visiveis >= cena.bullets.length) return undefined
+    const relogios = cena.bullets.map((_, i) =>
+      window.setTimeout(() => setVisiveis((v) => Math.max(v, i + 1)), (i + 1) * CASCATA_MS))
+    return () => relogios.forEach(window.clearTimeout)
+    // Roda uma vez por cena: a `key` no ponto de uso garante a remontagem.
+  }, [])
+
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <h2 className="text-[19px] font-semibold leading-tight k-text">{cena.titulo}</h2>
+      <ul className="mt-3 flex flex-col gap-2.5">
+        {cena.bullets.map((b, i) => (
+          <li key={b}
+            className="k-t border-l-2 pl-3 text-[13px] leading-relaxed k-text"
+            style={{
+              opacity: i < visiveis ? 1 : 0,
+              borderColor: i < visiveis ? 'var(--k-accent)' : 'var(--k-border)',
+            }}>
+            {b}
+          </li>
+        ))}
+      </ul>
+
+      {cena.agente && cena.cartao ? (
+        <div className="k-t mt-4" style={{ opacity: visiveis >= cena.bullets.length ? 1 : 0 }}>
+          <AgentCard agente={cena.agente} cartao={cena.cartao} />
+        </div>
+      ) : null}
+
+      <div className="mt-4 border-t k-bd pt-3">
+        <Botao icone={FileText} onClick={() => setVerNota((v) => !v)}>{T.narrativa.notas}</Botao>
+        {verNota ? (
+          <p className="mt-1.5 border-l-2 pl-3 text-[11.5px] leading-relaxed k-text-muted"
+            style={{ borderColor: 'var(--k-held)' }}>
+            {cena.notaDoApresentador}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * A camada narrada por cima do protótipo.
+ *
+ * A tela real fica ao fundo, funcionando, escurecida, com o elemento da cena em
+ * foco. O painel lateral traz os bullets um a um — para o olho ter tempo de
+ * pousar em cada frase antes da seguinte.
+ */
+function NarrativeOverlay({ estado, dispatch }) {
+  const t = T.narrativa
+  const { ativa, cena: numero, automatico, pausado, encerrada } = estado.narrativa
+  const cena = useMemo(() => cenaPorNumero(numero), [numero])
+
+  // Modo automático: anda sozinho pelo tempo de leitura declarado na cena.
+  useEffect(() => {
+    if (!ativa || encerrada || !automatico || pausado) return undefined
+    const relogio = window.setTimeout(() => dispatch({ tipo: 'cena-proxima' }), cena.duracao * 1000)
+    return () => window.clearTimeout(relogio)
+  }, [ativa, encerrada, automatico, pausado, cena, dispatch])
+
+  // Seta e barra de espaço avançam. Fora da narrativa nada responde: as teclas
+  // do modo de apresentação continuam sendo dele.
+  useEffect(() => {
+    if (!ativa) return undefined
+    const aoTeclar = (evento) => {
+      const alvo = evento.target
+      if (alvo && ['INPUT', 'TEXTAREA', 'SELECT'].includes(alvo.tagName)) return
+      if (evento.key === 'ArrowRight' || evento.key === ' ' || evento.key === 'Spacebar') {
+        evento.preventDefault()
+        dispatch({ tipo: 'cena-proxima' })
+        return
+      }
+      if (evento.key === 'ArrowLeft') {
+        evento.preventDefault()
+        dispatch({ tipo: 'cena-anterior' })
+      }
+    }
+    window.addEventListener('keydown', aoTeclar)
+    return () => window.removeEventListener('keydown', aoTeclar)
+  }, [ativa, dispatch])
+
+  if (!ativa) {
+    return (
+      <div className="fixed bottom-3 left-1/2 z-40 -translate-x-1/2">
+        <Botao variante="fill" icone={Play} titulo={t.retomarNota}
+          onClick={() => dispatch({ tipo: 'narrativa-retomar' })}>
+          {t.retomar}
+        </Botao>
+      </div>
+    )
+  }
+
+  if (encerrada) {
+    return (
+      <div className="fixed inset-0 z-40 flex items-center justify-center p-6" role="dialog" aria-modal="true">
+        <div className="absolute inset-0" aria-hidden="true" style={{ backgroundColor: 'rgba(5,5,5,.82)' }} />
+        <div className="relative w-full max-w-lg border k-bd-strong k-bg-raised p-5">
+          <h2 className="text-[17px] font-semibold k-text">{t.fim}</h2>
+          <p className="mt-2 text-[12.5px] leading-relaxed k-text-muted">{t.fimNota}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Botao variante="fill" icone={Compass} onClick={() => dispatch({ tipo: 'narrativa-explorar' })}>
+              {t.encerrar}
+            </Botao>
+            <Botao icone={RefreshCw} onClick={() => dispatch({ tipo: 'cena', n: 1 })}>{t.reiniciar}</Botao>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {/* A área escurecida avança a cena ao clique; o painel não. */}
+      <button type="button" aria-label={t.proxima} onClick={() => dispatch({ tipo: 'cena-proxima' })}
+        className="fixed inset-0 z-30 cursor-pointer" />
+      <Spotlight seletor={cena.destaque} chave={cena.n} />
+
+      <aside aria-label={t.tituloDoModo}
+        className="k-ink fixed bottom-0 right-0 top-0 z-40 flex w-[26rem] max-w-[92vw] flex-col border-l k-bd-strong k-bg">
+        <header className="border-b k-bd px-4 py-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-[10px] k-caps k-text-subtle">
+              {t.cena} <span className="tnum k-text">{numeroBr(cena.n)}</span> {t.de}{' '}
+              <span className="tnum">{numeroBr(TOTAL_DE_CENAS)}</span>
+            </p>
+            <Botao icone={Compass} onClick={() => dispatch({ tipo: 'narrativa-explorar' })}>{t.explorar}</Botao>
+          </div>
+          <div className="mt-2"><ProgressoDaNarrativa cena={cena.n} dispatch={dispatch} /></div>
+        </header>
+
+        <CorpoDaCena key={cena.n} cena={cena} />
+
+        <footer className="border-t k-bd px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Botao icone={ArrowLeft} disabled={cena.n === 1} onClick={() => dispatch({ tipo: 'cena-anterior' })}>
+              {t.anterior}
+            </Botao>
+            <Botao variante="fill" icone={ArrowRight} onClick={() => dispatch({ tipo: 'cena-proxima' })}>
+              {t.proxima}
+            </Botao>
+            {automatico ? (
+              <Botao icone={pausado ? Play : Pause} onClick={() => dispatch({ tipo: 'narrativa-pausa' })}>
+                {pausado ? t.tocar : t.pausar}
+              </Botao>
+            ) : (
+              <Botao icone={Play} onClick={() => dispatch({ tipo: 'narrativa-automatico' })}>{t.automatico}</Botao>
+            )}
+          </div>
+          <p className="mt-2 text-[10px] k-text-subtle">{t.avancarDica}</p>
+          <p className="text-[10px] k-text-subtle">{t.telaAoFundo}</p>
+        </footer>
+      </aside>
+    </>
   )
 }
 
@@ -7935,6 +8707,11 @@ export default function KeplerGalaxy() {
 
   // A flag também liga por parâmetro na URL do artifact, como no projeto. Vive em
   // memória a partir daí; `reset` desliga.
+  // A narrativa é o estado inicial: a cena 1 encontra a onda pronta na abertura.
+  useEffect(() => {
+    dispatch({ tipo: 'cena', n: 1 })
+  }, [])
+
   useEffect(() => {
     try {
       const busca = typeof window !== 'undefined' ? window.location.search : ''
@@ -7986,7 +8763,9 @@ export default function KeplerGalaxy() {
       <TopBar estado={estado} dispatch={dispatch} />
       <div className="flex flex-1 min-h-0">
         <SideNav estado={estado} ir={ir} />
-        <main className="flex-1 min-w-0 overflow-y-auto p-4">
+        {/* Enquanto a narrativa conduz, o conteúdo recua a largura do painel: o
+            elemento destacado tem que caber inteiro no que sobra da tela. */}
+        <main className={`flex-1 min-w-0 overflow-y-auto p-4 ${estado.narrativa.ativa ? 'pr-[27rem]' : ''}`}>
           {cabecalho ? (
             <header className="mb-4">
               <h1 className="text-[17px] k-text font-semibold">{cabecalho.titulo}</h1>
@@ -8000,6 +8779,9 @@ export default function KeplerGalaxy() {
       {estado.apresentacao.ativa ? <PresenterBar estado={estado} dispatch={dispatch} /> : null}
       {estado.apresentacao.ativa && estado.apresentacao.notas
         ? <PresenterNotes estado={estado} dispatch={dispatch} /> : null}
+      {/* A camada narrada fica por cima de tudo — inclusive do modo de
+          apresentação, que conduz quem apresenta, não quem assiste. */}
+      <NarrativeOverlay estado={estado} dispatch={dispatch} />
     </div>
   )
 }

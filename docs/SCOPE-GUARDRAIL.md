@@ -22,6 +22,7 @@ e promessa em demonstração vira expectativa que o projeto não cobre.
 | Uso | demonstração conduzida, em sala | envio ao cliente pelo chat, para explorar depois |
 | Fixtures | 42 fornecedores · 18 contratos · 24 materiais | 24 · 12 · 14, com todos os tipos de defeito preservados |
 | Escopo declarado na tela | 2.080 registros · 48 pacotes | idem, separado do subconjunto demonstrado |
+| Camada narrada | 15 cenas, ligada ao abrir | idem — mesmo roteiro, mesmos cartões de agente |
 | Fonte de verdade | **sim** | não — é um recorte, e o repositório manda |
 
 ## Telas
