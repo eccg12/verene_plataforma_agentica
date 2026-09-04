@@ -1,3 +1,4 @@
+import { numeroBr } from '@/copy/format'
 import { strings } from '@/copy/strings'
 import { contarPorEstado, loadPackageBoard, packageStates, type PackageState } from '@/data/packages'
 import { cycleById, cycles, scopeObjects, speIds, type Cycle } from '@/data/scope'
@@ -42,7 +43,7 @@ export function PackageGrid({ cicloCorrente }: PackageGridProps) {
           {loadPackageBoard.length} {t.resumoPacotes}
         </span>
         <span className="tnum text-xs text-fg-subtle">
-          {totalRegistros.toLocaleString('pt-BR')} {t.resumoRegistros}
+          {numeroBr(totalRegistros)} {t.resumoRegistros}
         </span>
       </div>
       <p className="mt-1 max-w-[80ch] text-sm text-fg-subtle">{t.note}</p>
@@ -110,7 +111,7 @@ export function PackageGrid({ cicloCorrente }: PackageGridProps) {
                   }),
                 )}
                 <td className="border-l border-line px-2 text-right tnum text-fg">
-                  {objeto.volume.toLocaleString('pt-BR')}
+                  {numeroBr(objeto.volume)}
                 </td>
               </tr>
             ))}

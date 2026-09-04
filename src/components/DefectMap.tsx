@@ -1,4 +1,5 @@
 import { Table, Tbody, Td, Th, Thead, Tr } from '@/components/DataTable'
+import { numeroBr, percentualBr } from '@/copy/format'
 import { strings } from '@/copy/strings'
 import { qualityDimensions } from '@/data/defect-taxonomy'
 import { scopeObjects } from '@/data/scope'
@@ -18,7 +19,7 @@ function BarraTaxa({ taxa, maximo }: { readonly taxa: number; readonly maximo: n
   return (
     <span className="flex items-center gap-1.5">
       <span className="tnum w-12 text-right text-fg">
-        {taxa.toFixed(1)}
+        {percentualBr(taxa)}
         {strings.simbolos.porcento}
       </span>
       <span className="h-1 w-16 shrink-0 bg-surface-sunken" aria-hidden="true">
@@ -57,10 +58,10 @@ function TabelaTaxa({
           {linhas.map((linha) => (
             <Tr key={linha.chave}>
               <Td>
-                <span className="text-fg">{rotulos?.[linha.chave] ?? linha.rotulo}</span>
+                <span className="text-fg">{rotulos?.[linha.chave] ?? linha.chave}</span>
               </Td>
-              <Td numeric>{linha.registros.toLocaleString('pt-BR')}</Td>
-              <Td numeric>{linha.defeitos.toLocaleString('pt-BR')}</Td>
+              <Td numeric>{numeroBr(linha.registros)}</Td>
+              <Td numeric>{numeroBr(linha.defeitos)}</Td>
               <Td numeric>
                 <span className={linha.criticos > 0 ? 'text-held' : 'text-fg-subtle'}>{linha.criticos}</span>
               </Td>
@@ -94,7 +95,7 @@ export function DefectMap() {
           {resumoDefeitos.criticos} {t.resumoCriticos}
         </span>
         <span className="tnum text-xs text-fg-subtle">
-          {resumoDefeitos.taxaGeral.toFixed(1)}
+          {percentualBr(resumoDefeitos.taxaGeral)}
           {strings.simbolos.porcento} {t.resumoTaxa}
         </span>
       </div>
@@ -128,7 +129,7 @@ export function DefectMap() {
           <tbody>
             {taxaPorObjeto.map((objeto) => (
               <tr key={objeto.chave} className="h-7 border-t border-line">
-                <td className="px-2 text-fg">{nomeObjeto[objeto.chave] ?? objeto.rotulo}</td>
+                <td className="px-2 text-fg">{nomeObjeto[objeto.chave] ?? objeto.chave}</td>
                 {qualityDimensions.map((dimensao) => {
                   const celula = matrizObjetoDimensao.find(
                     (c) => c.objetoId === objeto.chave && c.dimensao === dimensao,

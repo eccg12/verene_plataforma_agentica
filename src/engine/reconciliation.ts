@@ -24,6 +24,14 @@ import type { PipelineRun, RecordOutcome } from '@/engine/pipeline'
 
 export interface LinhaContagem {
   readonly chave: string
+  /**
+   * A esteira chegou ao passo que produz esta medida?
+   *
+   * Enquanto ela está parada num checkpoint, o estado final de cada registro é
+   * uma projeção, não um resultado — e mostrar "11 no destino" com a esteira
+   * parada no passo 3 é a tela contradizendo a própria esteira.
+   */
+  readonly mensuravel: boolean
   readonly rotulo: string
   readonly origem: number
   readonly destino: number
@@ -47,8 +55,12 @@ function explicar(run: PipelineRun, filtro: (spe: SpeId) => boolean) {
   ].filter((e) => e.quantidade > 0)
 }
 
+const reconciliou = (run: PipelineRun): boolean =>
+  run.steps.find((s) => s.id === 'reconcile')?.status === 'completed'
+
 /** Reconciliação por contagem, quebrada por SPE. */
 export function contagemPorSpe(run: PipelineRun): readonly LinhaContagem[] {
+  const mensuravel = reconciliou(run)
   return speIds.map((spe) => {
     const filtro = (s: SpeId) => s === spe
     const origem = run.records.filter((r) => filtro(r.spe)).length
@@ -59,6 +71,7 @@ export function contagemPorSpe(run: PipelineRun): readonly LinhaContagem[] {
     const reduzem = explicacao.filter((e) => !e.causa.startsWith('reusados')).reduce((a, e) => a + e.quantidade, 0)
     return {
       chave: spe,
+      mensuravel,
       rotulo: spe,
       origem,
       destino,
@@ -78,6 +91,7 @@ export function contagemTotal(run: PipelineRun): LinhaContagem {
   const reduzem = explicacao.filter((e) => !e.causa.startsWith('reusados')).reduce((a, e) => a + e.quantidade, 0)
   return {
     chave: 'total',
+    mensuravel: reconciliou(run),
     rotulo: 'Fornecedores',
     origem,
     destino,

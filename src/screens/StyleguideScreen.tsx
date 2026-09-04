@@ -17,6 +17,7 @@ import {
   Tr,
 } from '@/components'
 import { TokenSwatch } from '@/components/TokenSwatch'
+import { numeroBr } from '@/copy/format'
 import { strings } from '@/copy/strings'
 import {
   defectSwatches,
@@ -143,9 +144,9 @@ function Body({ surface }: { readonly surface: SurfaceName }) {
                 <Td>
                   <span className="text-fg">{row.object}</span>
                 </Td>
-                <Td numeric>{row.records.toLocaleString('pt-BR')}</Td>
-                <Td numeric>{row.migrated.toLocaleString('pt-BR')}</Td>
-                <Td numeric>{row.defects.toLocaleString('pt-BR')}</Td>
+                <Td numeric>{numeroBr(row.records)}</Td>
+                <Td numeric>{numeroBr(row.migrated)}</Td>
+                <Td numeric>{numeroBr(row.defects)}</Td>
                 <Td numeric>{pct(row.migrated, row.records)}</Td>
                 <Td>
                   <DefectOrigin origin={row.origin} />

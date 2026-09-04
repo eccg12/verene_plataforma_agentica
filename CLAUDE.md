@@ -353,6 +353,38 @@ o passo, que é o que permite remostrar depois de uma pergunta. Há teste para o
 **O selo de ambiente de demonstração é permanente**, em toda tela, sem tecla para esconder. Um
 protótipo bem feito parece um sistema — e é por parecer que ele precisa dizer que não é.
 
+## Passe de qualidade
+
+O que a suíte trava, para não voltar:
+
+- **`src/copy/format.ts`** é o único lugar que formata data, número e moeda. Data em DD/MM/AAAA,
+  milhar com ponto, decimal com vírgula, percentual colado ao símbolo. Há teste que reprova
+  recorte de string para montar data fora dali, e o navegador é varrido atrás de AAAA-MM-DD
+  renderizado. O ISO sobrevive num lugar só: dentro do XML do Migration Cockpit, onde é o formato
+  certo.
+- **Idioma.** `src/copy/__tests__/copy.test.ts` varre todo texto visível atrás de inglês fora do
+  glossário. Foi assim que entraram `Gates`, `data owner`, `Value domain` e os nove nomes de passo
+  da esteira, e que saíram "Status" e "Preview".
+- **Consistência aritmética.** `src/engine/__tests__/consistencia.test.ts` liga os números que o
+  cliente soma: origem = destino + retidos + fundidos, o total é a soma das quatro SPEs, o destino
+  é o que entra no pacote e o que sai no XML, CA-03 é a contagem crítica de `transformation`, e a
+  divisão do pacote fecha nos dois tetos. Roda nas duas versões de playbook.
+- **Denominador na tela.** O Mission Control perfila **o que foi recebido** (71), não o que a
+  fixture tem (84) — o painel ao lado conta os mesmos 71. E o escopo declarado (2.080) diz na
+  própria nota que é a onda inteira, não o que o protótipo processa.
+- **Esteira parada não tem destino.** Enquanto o run está bloqueado num checkpoint, a
+  reconciliação por contagem não mostra número: mostrar "11 no destino" com a esteira parada no
+  passo 3 seria a tela contradizendo o próprio motor, ao lado de um placar que já diz "ainda não
+  mensurável".
+- **Contraste.** `fg-subtle` é medido contra a PIOR superfície de cada modo, não contra a base:
+  ele vive em rótulo de 10px sobre `surface-raised` e `surface-sunken`. Auditoria de todas as
+  telas em 1920×1080 e 1440×900 não acusa nenhum texto abaixo de 4,5:1.
+- **Jost aguenta o português.** Medido: `ç`, `ã`, `õ` e `í` vêm da própria fonte (nada de
+  fallback), o acento acrescenta menos de 1px de avanço, e em caixa alta a linha de 10px não corta
+  cedilha nem til.
+- **Desempenho.** Troca de tela medida em toda a navegação: pior caso 36ms, muito abaixo dos
+  200ms. O roteiro roda três vezes seguidas com reset entre elas e produz estado idêntico.
+
 ## Comandos
 
 Para a chamada ao vivo do Momento 2, copie `.env.example` para `.env.local` e preencha

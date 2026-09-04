@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Surface } from '@/components/Surface'
 import { paths } from '@/app/paths'
+import { horaBr } from '@/copy/format'
 import { strings } from '@/copy/strings'
 import { nasajonContracts } from '@/data/source/nasajon-contracts'
 import { runContractLine, type ContractLineResult } from '@/engine/contract-pipeline'
@@ -16,7 +17,7 @@ const t = strings.record
 
 export { CASO_FORNECEDOR, CASO_LINHA_CONTRATO } from '@/data/record-cases'
 
-const instante = (iso: string): string => iso.slice(11, 19)
+
 
 function Timeline({
   trail,
@@ -102,7 +103,7 @@ function TrilhaCampoACampo({ trail }: { readonly trail: readonly TrailEntry[] })
                 </Link>
               </td>
               <td className="px-2 py-1 tnum text-2xs text-fg-subtle">{e.playbookVersion}</td>
-              <td className="px-2 py-1 tnum text-2xs text-fg-subtle">{instante(e.at)}</td>
+              <td className="px-2 py-1 tnum text-2xs text-fg-subtle">{horaBr(e.at)}</td>
               <td className="px-2 py-1 text-2xs text-fg-subtle">{e.note}</td>
             </tr>
           ))}

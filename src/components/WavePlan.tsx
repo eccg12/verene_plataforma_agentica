@@ -1,3 +1,4 @@
+import { numeroBr } from '@/copy/format'
 import { strings } from '@/copy/strings'
 import { scopeObjects } from '@/data/scope'
 import { waves } from '@/data/waves'
@@ -21,7 +22,7 @@ export function WavePlan() {
                   {t.waveLabel} {wave.numero}
                 </span>
                 <span className="ml-auto tnum text-xs text-fg-muted">
-                  {volume.toLocaleString('pt-BR')}
+                  {numeroBr(volume)}
                 </span>
                 <span className="text-2xs uppercase tracking-wider text-fg-subtle">{t.volumeLabel}</span>
               </div>

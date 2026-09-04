@@ -12,6 +12,7 @@ import {
   fingerprint,
   recebimentos,
   resumoDefeitos,
+  resumoRecebimento,
   taxaPorDimensao,
   taxaPorObjeto,
 } from '@/engine/mission-control'
@@ -118,16 +119,33 @@ describe('recebimento', () => {
 })
 
 describe('mapa de defeitos do VEGA', () => {
-  it('conta os defeitos plantados de cada objeto perfilado', () => {
+  it('conta os defeitos plantados apenas do que já foi recebido', () => {
+    // O mapa perfila o que chegou, não o que a fixture tem: materiais da SPE-4 e
+    // contratos das SPE-3 e 4 ainda não foram entregues, e contá-los faria a
+    // mesma tela dizer "71 lidos" e "84 perfilados".
+    const recebidas = (objetoId: string) =>
+      new Set(arquivosRecebidos.filter((a) => a.objetoId === objetoId).map((a) => a.spe))
+    const contar = <T extends { spe: string; _plantedDefect: readonly unknown[] }>(
+      objetoId: string,
+      registros: readonly T[],
+    ) => {
+      const spes = recebidas(objetoId)
+      return registros.filter((r) => spes.has(r.spe as never)).reduce((a, r) => a + r._plantedDefect.length, 0)
+    }
     const esperado = {
-      fornecedores: nasajonSuppliers.reduce((a, s) => a + s._plantedDefect.length, 0),
-      'materiais-servicos': nasajonMaterials.reduce((a, m) => a + m._plantedDefect.length, 0),
-      contratos: nasajonContracts.reduce((a, c) => a + c._plantedDefect.length, 0),
+      fornecedores: contar('fornecedores', nasajonSuppliers),
+      'materiais-servicos': contar('materiais-servicos', nasajonMaterials),
+      contratos: contar('contratos', nasajonContracts),
     }
     for (const linha of taxaPorObjeto) {
       expect(linha.defeitos, linha.chave).toBe(esperado[linha.chave as keyof typeof esperado])
     }
     expect(resumoDefeitos.defeitos).toBe(Object.values(esperado).reduce((a, b) => a + b, 0))
+  })
+
+  it('perfila exatamente os registros que o recebimento leu', () => {
+    // É a mesma tela: dois painéis não podem contar universos diferentes.
+    expect(resumoDefeitos.registrosPerfilados).toBe(resumoRecebimento.registrosLidos)
   })
 
   it('a soma por dimensão bate com a soma por objeto', () => {

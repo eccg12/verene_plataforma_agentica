@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { paths } from '@/app/paths'
 import { Button } from '@/components/Button'
 import { GateStatusBadge } from '@/components/GateStatusBadge'
+import { dataHoraBr } from '@/copy/format'
 import { strings } from '@/copy/strings'
 import type { GateId } from '@/data/gates'
 import {
@@ -18,10 +19,6 @@ import { runDeTodasSpes, useSimulation } from '@/engine/store'
 
 const ICON = 13
 const t = strings.gates
-
-/** Data e hora do instante determinístico da simulação. */
-const quando = (iso: string): string =>
-  `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)} ${iso.slice(11, 16)}`
 
 const ORDEM_RESUMO: readonly GateStatus[] = [
   'aprovado',
@@ -153,7 +150,7 @@ function LinhaDaTrilha({ item }: { readonly item: ItemDeTrilha }) {
           </span>
         )}
       </td>
-      <td className="px-2 py-1.5 tnum text-fg-muted">{assinatura === null ? null : quando(assinatura.at)}</td>
+      <td className="px-2 py-1.5 tnum text-fg-muted">{assinatura === null ? null : dataHoraBr(assinatura.at)}</td>
       <td className="px-2 py-1.5 tnum text-fg-muted">{assinatura === null ? null : assinatura.playbookVersion}</td>
     </tr>
   )

@@ -7,6 +7,7 @@ import { PARAM_REGRA, paths } from '@/app/paths'
 import { Button } from '@/components/Button'
 import { Table, Tbody, Td, Th, Thead, Tr } from '@/components/DataTable'
 import { Surface } from '@/components/Surface'
+import { dataBr } from '@/copy/format'
 import { strings } from '@/copy/strings'
 import { agentNames, type AgentName } from '@/data/agents'
 import { historicoDaRegra } from '@/data/playbook-history'
@@ -22,13 +23,6 @@ const t = strings.playbook
 
 const OBJETOS = ['fornecedores', 'materiais-servicos', 'contratos', 'transversal'] as const
 type ObjetoFiltro = (typeof OBJETOS)[number]
-
-const ROTULO_OBJETO: Record<ObjetoFiltro, string> = {
-  fornecedores: 'Fornecedores',
-  'materiais-servicos': 'Materiais e serviços',
-  contratos: 'Contratos',
-  transversal: 'Transversal',
-}
 
 type Filtro<T extends string> = T | 'todos'
 
@@ -226,7 +220,7 @@ function DetalheRegra({ regra }: { readonly regra: PlaybookRule }) {
         </div>
         <div>
           <dt className="text-2xs uppercase tracking-wider text-fg-subtle">{d.criadaEm}</dt>
-          <dd className="tnum text-fg">{regra.createdAt}</dd>
+          <dd className="tnum text-fg">{dataBr(regra.createdAt)}</dd>
         </div>
         <div>
           <dt className="text-2xs uppercase tracking-wider text-fg-subtle">{d.entrouEm}</dt>
@@ -247,7 +241,7 @@ function DetalheRegra({ regra }: { readonly regra: PlaybookRule }) {
             <li key={`${h.versao}-${i}`} className="border-t border-line py-1.5">
               <p className="flex items-baseline gap-2 text-xs">
                 <span className="tnum font-medium text-accent">{h.versao}</span>
-                <span className="tnum text-fg-subtle">{h.data}</span>
+                <span className="tnum text-fg-subtle">{dataBr(h.data)}</span>
                 <span className="text-fg-muted">{h.tipo}</span>
                 <span className="ml-auto text-2xs text-fg-subtle">{h.autor}</span>
               </p>
@@ -446,7 +440,7 @@ export function PlaybookScreen() {
         <div className="flex flex-wrap items-center gap-3 border-y border-line py-2">
           <span className="text-2xs uppercase tracking-wider text-fg-subtle">{t.filtros.titulo}</span>
           <Seletor rotulo={t.filtros.agente} valor={agente} opcoes={agentNames} aoMudar={setAgente} />
-          <Seletor rotulo={t.filtros.objeto} valor={objeto} opcoes={OBJETOS} rotulos={ROTULO_OBJETO} aoMudar={setObjeto} />
+          <Seletor rotulo={t.filtros.objeto} valor={objeto} opcoes={OBJETOS} rotulos={strings.playbookObjects} aoMudar={setObjeto} />
           <Seletor rotulo={t.filtros.tipo} valor={tipo} opcoes={ruleTypes} rotulos={strings.ruleTypes} aoMudar={setTipo} />
           <Button
             variant="ghost"

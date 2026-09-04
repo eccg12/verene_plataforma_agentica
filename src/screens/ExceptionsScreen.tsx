@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { paths } from '@/app/paths'
 import { Button } from '@/components/Button'
 import { Surface } from '@/components/Surface'
+import { dataBr } from '@/copy/format'
 import { strings } from '@/copy/strings'
 import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
 import {
@@ -65,7 +66,7 @@ function LinhaExcecao({ item }: { readonly item: ExcecaoNaFila }) {
         )}
       </td>
       <td className="px-2 py-1.5">
-        <p className="tnum text-xs text-fg">{item.prazo}</p>
+        <p className="tnum text-xs text-fg">{dataBr(item.prazo)}</p>
         <p className="tnum text-2xs text-fg-subtle">
           {item.prazoDias} {t.prazoDias}
         </p>

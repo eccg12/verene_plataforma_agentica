@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 import { paths } from '@/app/paths'
 import { Button } from '@/components/Button'
 import { Surface } from '@/components/Surface'
+import { dataBr, dataHoraBr, numeroBr } from '@/copy/format'
 import { strings } from '@/copy/strings'
 import {
   calendarioAcordado,
@@ -110,7 +111,7 @@ export function PackagesScreen() {
                         ) : null}
                         <td className="px-2 text-fg-muted">{spe}</td>
                         <td className="px-2 text-right tnum text-fg">
-                          {(pacote('ciclo-1')?.registros ?? 0).toLocaleString('pt-BR')}
+                          {numeroBr(pacote('ciclo-1')?.registros ?? 0)}
                         </td>
                         {cycles.map((c) => {
                           const estado = pacote(c)?.estado ?? 'nao-iniciado'
@@ -161,11 +162,11 @@ export function PackagesScreen() {
                 <span className="tnum text-2xs text-fg-subtle">
                   {t.simulacao.executadaEm}
                   {strings.simbolos.doisPontos}
-                  {simulacao.executadaEm}
+                  {dataBr(simulacao.executadaEm)}
                 </span>
               ) : null}
               <span className="tnum text-2xs text-fg-subtle">
-                {simulacao.registrosSimulados.toLocaleString('pt-BR')} {t.simulacao.registrosSimulados}
+                {numeroBr(simulacao.registrosSimulados)} {t.simulacao.registrosSimulados}
               </span>
               <span className={`ml-auto text-xs font-medium ${simulacao.estado === 'aprovada' ? 'text-signed' : 'text-exception'}`}>
                 {simulacao.estado === 'aprovada' ? t.simulacao.liberado : t.simulacao.naoLiberado}
@@ -273,7 +274,7 @@ export function PackagesScreen() {
                 ))}
                 <tr className="h-7 border-t border-line-strong">
                   <td className="px-3 text-2xs uppercase tracking-wider text-fg-subtle">{t.split.totalLabel}</td>
-                  <td className="px-3 text-right tnum text-fg">{divisao.registrosTotais.toLocaleString('pt-BR')}</td>
+                  <td className="px-3 text-right tnum text-fg">{numeroBr(divisao.registrosTotais)}</td>
                   <td className="px-3 text-right tnum text-fg">{divisao.megabytesTotais}</td>
                   <td />
                 </tr>
@@ -293,7 +294,7 @@ export function PackagesScreen() {
                   { k: t.manifest.playbookChecksum, v: manifest.playbookChecksum, destaque: true },
                   { k: t.manifest.datasetChecksum, v: manifest.datasetChecksum, destaque: false },
                   { k: t.manifest.total, v: String(manifest.total), destaque: false },
-                  { k: t.manifest.geradoEm, v: manifest.geradoEm, destaque: false },
+                  { k: t.manifest.geradoEm, v: dataHoraBr(manifest.geradoEm), destaque: false },
                 ].map((linha) => (
                   <div key={linha.k} className="flex gap-2 border-t border-line py-1 first:border-t-0">
                     <dt className="w-44 shrink-0 text-2xs uppercase tracking-wider text-fg-subtle">{linha.k}</dt>
@@ -329,7 +330,7 @@ export function PackagesScreen() {
 
               <p className="mt-2 text-2xs uppercase tracking-wider text-fg-subtle">{t.entrega.escopo}</p>
               <p className="tnum text-xs text-fg">
-                {(objeto?.volume ?? 0).toLocaleString('pt-BR')} {t.entrega.registros}
+                {numeroBr((objeto?.volume ?? 0))} {t.entrega.registros}
                 {strings.simbolos.separador}
                 {objeto?.objetosTenant.length ?? 0} {t.entrega.objetos}
               </p>
@@ -370,9 +371,9 @@ export function PackagesScreen() {
                     <p className="flex items-baseline gap-2">
                       <span className="text-xs text-fg">{janela.nome}</span>
                       <span className="tnum ml-auto text-2xs text-fg-muted">
-                        {janela.inicio}
+                        {dataBr(janela.inicio)}
                         {strings.simbolos.intervalo}
-                        {janela.fim}
+                        {dataBr(janela.fim)}
                       </span>
                     </p>
                     <p className="text-2xs text-fg-subtle">{janela.observacao}</p>

@@ -20,6 +20,7 @@ export const SAP_TERMS = [
   'Purchase requisition',
   'Incoterms',
   'tenant',
+  'Value domain',
   'Fiori',
   'XML',
 ] as const
@@ -33,13 +34,34 @@ export const MODEL_TERMS = ['Anthropic', 'Claude', 'API'] as const
 /** Nomes de artefatos contratuais e do processo de entrega. */
 export const CONTRACT_ARTIFACTS = [
   'Gate',
+  // O plural é usado o tempo todo na UI. Registrar a forma é mais honesto do que
+  // fingir que "os Gate" resolve — mas ela continua sendo a ÚNICA flexão aceita.
+  'Gates',
   'Wave',
   'Mission Control',
+  'data owner',
   'fingerprint',
   'playbook',
   'manifest',
   'checksum',
   'cutover',
+] as const
+
+/**
+ * Nomes dos passos da esteira. Aparecem em caixa alta na trilha de cada registro
+ * e são o nome da operação, não uma descrição — traduzir tiraria a correspondência
+ * com o que o playbook publica.
+ */
+export const PIPELINE_STEPS = [
+  'RECEIVE',
+  'PROFILE',
+  'MAP',
+  'TRANSFORM',
+  'DEDUPLICATE',
+  'ENRICH',
+  'VALIDATE',
+  'PACKAGE',
+  'RECONCILE',
 ] as const
 
 /**
@@ -61,6 +83,7 @@ export const AGENT_NAMES: readonly string[] = [
 export const PRESERVED_TERMS: readonly string[] = [
   ...SAP_TERMS,
   ...CONTRACT_ARTIFACTS,
+  ...PIPELINE_STEPS,
   ...MODEL_TERMS,
   ...AGENT_NAMES,
 ]

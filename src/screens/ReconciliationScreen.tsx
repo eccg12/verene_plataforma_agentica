@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { paths } from '@/app/paths'
 import { Button } from '@/components/Button'
 import { Surface } from '@/components/Surface'
+import { moedaBr, numeroBr, percentualBr } from '@/copy/format'
 import { strings } from '@/copy/strings'
 import { verificacoesFiori } from '@/data/fiori-checks'
 import { gateById } from '@/data/gates'
@@ -23,8 +24,17 @@ import { runDeTodasSpes, useSimulation } from '@/engine/store'
 const ICON = 13
 const t = strings.reconciliation
 
-const brl = (v: number): string =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 })
+
+
+/**
+ * Percentual sai com vírgula e colado ao símbolo, como se escreve em português;
+ * contagem sai inteira, com a unidade separada. O alvo é sempre inteiro por
+ * declaração, então não ganha casa decimal.
+ */
+const medida = (valor: number, unidade: string, casas = 1): string =>
+  unidade === strings.simbolos.porcento
+    ? `${percentualBr(valor, casas)}${strings.simbolos.porcento}`
+    : `${numeroBr(valor)} ${unidade}`
 
 /** Cor da origem, na escala categórica do design system. */
 const ORIGEM_TEXTO: Record<DefectOriginId, string> = {
@@ -41,6 +51,16 @@ const ORIGEM_FUNDO: Record<DefectOriginId, string> = {
 }
 
 function TabelaContagem({ linhas, total }: { readonly linhas: readonly LinhaContagem[]; readonly total: LinhaContagem }) {
+  // Esteira parada não tem destino: mostrar contagem aqui enquanto o placar diz
+  // "ainda não mensurável" seria a mesma tela se contradizendo.
+  if (!total.mensuravel) {
+    return (
+      <div className="border border-line px-3 py-2">
+        <p className="text-sm text-fg-subtle">{t.placar.naoMensuravel}</p>
+        <p className="mt-0.5 max-w-[80ch] text-2xs text-fg-muted">{t.contagemBloqueada}</p>
+      </div>
+    )
+  }
   return (
     <div className="overflow-x-auto border border-line">
       <table className="w-full text-base">
@@ -105,10 +125,10 @@ function TabelaValor({ linhas }: { readonly linhas: readonly LinhaValor[] }) {
           {linhas.map((linha) => (
             <tr key={linha.chave} className="border-t border-line align-top">
               <td className="px-2 py-1.5 text-fg">{linha.rotulo}</td>
-              <td className="px-2 py-1.5 text-right tnum text-fg">{brl(linha.origem)}</td>
-              <td className="px-2 py-1.5 text-right tnum text-fg">{brl(linha.destino)}</td>
+              <td className="px-2 py-1.5 text-right tnum text-fg">{moedaBr(linha.origem)}</td>
+              <td className="px-2 py-1.5 text-right tnum text-fg">{moedaBr(linha.destino)}</td>
               <td className={`px-2 py-1.5 text-right tnum ${linha.diferenca === 0 ? 'text-fg-subtle' : 'text-held'}`}>
-                {brl(linha.diferenca)}
+                {moedaBr(linha.diferenca)}
               </td>
               <td className="px-2 py-1.5">
                 {linha.explicacao.length === 0 ? (
@@ -117,7 +137,7 @@ function TabelaValor({ linhas }: { readonly linhas: readonly LinhaValor[] }) {
                   <ul>
                     {linha.explicacao.map((e) => (
                       <li key={e.causa} className="text-2xs text-fg-muted">
-                        <span className="tnum text-fg">{brl(e.valor)}</span> {strings.simbolos.separador}
+                        <span className="tnum text-fg">{moedaBr(e.valor)}</span> {strings.simbolos.separador}
                         {e.causa}
                       </li>
                     ))}
@@ -131,9 +151,9 @@ function TabelaValor({ linhas }: { readonly linhas: readonly LinhaValor[] }) {
           ))}
           <tr className="border-t border-line-strong bg-surface-sunken">
             <td className="px-2 py-1.5 text-2xs uppercase tracking-wider text-fg-subtle">{t.colChave}</td>
-            <td className="px-2 py-1.5 text-right tnum text-fg">{brl(totalOrigem)}</td>
-            <td className="px-2 py-1.5 text-right tnum text-fg">{brl(totalDestino)}</td>
-            <td className="px-2 py-1.5 text-right tnum text-held">{brl(totalDestino - totalOrigem)}</td>
+            <td className="px-2 py-1.5 text-right tnum text-fg">{moedaBr(totalOrigem)}</td>
+            <td className="px-2 py-1.5 text-right tnum text-fg">{moedaBr(totalDestino)}</td>
+            <td className="px-2 py-1.5 text-right tnum text-held">{moedaBr(totalDestino - totalOrigem)}</td>
             <td />
           </tr>
         </tbody>
@@ -182,12 +202,15 @@ export function ReconciliationScreen() {
                 <h3 className="mt-1.5 text-sm font-medium text-fg">{r.criterio.nome}</h3>
                 <p className="mt-1 flex items-baseline gap-2">
                   <span className={`tnum text-xl font-medium ${!r.mensurável ? 'text-fg-subtle' : r.atende ? 'text-signed' : 'text-exception'}`}>
-                    {r.medido}
+                    {medida(r.medido, r.criterio.unidade, 1).replace(/ defeitos$/, '')}
                   </span>
                   <span className="text-2xs text-fg-subtle">
                     {t.placar.colAlvo}
                     {strings.simbolos.doisPontos}
-                    {r.criterio.tipo === 'percentual-minimo' ? '≥' : '≤'} {r.alvo} {r.criterio.unidade}
+                    {r.criterio.tipo === 'percentual-minimo'
+                      ? strings.simbolos.noMinimo
+                      : strings.simbolos.noMaximo}{' '}
+                    {medida(r.alvo, r.criterio.unidade, 0)}
                   </span>
                 </p>
                 <p className={`text-2xs font-medium ${!r.mensurável ? 'text-fg-subtle' : r.atende ? 'text-signed' : 'text-exception'}`}>
@@ -227,7 +250,7 @@ export function ReconciliationScreen() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-fg-subtle">{t.registro.colPercentual}</dt>
-                  <dd className="tnum text-fg">{daMonoda?.percentual ?? 0}{strings.simbolos.porcento}</dd>
+                  <dd className="tnum text-fg">{percentualBr(daMonoda?.percentual ?? 0)}{strings.simbolos.porcento}</dd>
                 </div>
               </dl>
             </div>

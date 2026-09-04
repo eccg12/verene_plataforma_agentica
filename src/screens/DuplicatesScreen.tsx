@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { paths } from '@/app/paths'
 import { Button } from '@/components/Button'
 import { Surface } from '@/components/Surface'
+import { dataBr } from '@/copy/format'
 import { strings } from '@/copy/strings'
 import { nasajonSuppliers } from '@/data/source/nasajon-suppliers'
 import { existingSuppliers } from '@/data/target/existing-base'
@@ -213,7 +214,7 @@ function JaCadastrados() {
                     </div>
                     <div className="flex gap-2">
                       <dt className="text-2xs uppercase tracking-wider text-fg-subtle">{r.criadoEm}</dt>
-                      <dd className="tnum text-2xs text-fg-muted">{existente.criadoEm}</dd>
+                      <dd className="tnum text-2xs text-fg-muted">{dataBr(existente.criadoEm)}</dd>
                     </div>
                   </dl>
                 ) : null}

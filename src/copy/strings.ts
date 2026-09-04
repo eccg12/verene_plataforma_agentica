@@ -111,6 +111,8 @@ export const strings = {
     separador: ' · ',
     doisPontos: ': ',
     intervalo: ' — ',
+    noMinimo: '≥',
+    noMaximo: '≤',
   },
   shell: {
     projectTitle: 'GALAXY | Transformação de Dados',
@@ -176,6 +178,13 @@ export const strings = {
     deterministic: 'Determinística',
     generative: 'Generativa',
   },
+  // Objetos de escopo do playbook. Distintos dos objetos de migração do tenant.
+  playbookObjects: {
+    fornecedores: 'Fornecedores',
+    'materiais-servicos': 'Materiais e serviços',
+    contratos: 'Contratos',
+    transversal: 'Transversal',
+  },
   migrationObjects: {
     'business-partner': 'Business Partner (fornecedor)',
     'product-master': 'Product master',
@@ -212,7 +221,7 @@ export const strings = {
     subtitle: 'Escopo, recebimento, qualidade e agentes em um lugar só',
     grid: {
       title: 'Pacotes de carga',
-      note: 'Seis objetos, quatro SPEs, dois ciclos. Quarenta e oito pacotes — este é o escopo inteiro, não uma amostra. O número em cada célula é o volume previsto do pacote.',
+      note: 'Seis objetos, quatro SPEs, dois ciclos. Quarenta e oito pacotes — este é o escopo declarado da onda, e o número em cada célula é o volume previsto do pacote. O que este protótipo processa é o extrato já recebido, muito menor: os painéis de recebimento e de qualidade abaixo trazem esse número, e é sobre ele que toda contagem das outras telas é feita.',
       colObjeto: 'Objeto',
       colTotal: 'Volume',
       legenda: 'Estado',
@@ -229,7 +238,7 @@ export const strings = {
     },
     defects: {
       title: 'Mapa de defeitos',
-      note: 'Perfilagem do VEGA sobre o que já foi recebido. Taxa é defeitos por cem registros; um registro pode carregar mais de um defeito, então a taxa passa de cem quando a densidade é alta.',
+      note: 'Perfilagem do VEGA sobre o que já foi recebido — os mesmos registros contados no recebimento acima, não o volume declarado no escopo. Taxa é defeitos por cem registros; um registro pode carregar mais de um defeito, então a taxa passa de cem quando a densidade é alta.',
       porObjeto: 'Por objeto',
       porDimensao: 'Por dimensão de qualidade',
       matriz: 'Objeto por dimensão',
@@ -310,7 +319,7 @@ export const strings = {
       campo: 'Campo',
       tipo: 'Tipo',
       natureza: 'Natureza',
-      status: 'Status',
+      status: 'Situação',
       aplicada: 'Registros',
     },
     detalhe: {
@@ -394,7 +403,7 @@ export const strings = {
       campoOrigem: 'Campo de origem',
       campoAlvo: 'Campo alvo S/4HANA',
       regra: 'Regra de conversão',
-      valueDomain: 'Value domain (live tenant)',
+      valueDomain: 'Value domain (tenant vivo)',
       padrao: 'Default',
       dependencia: 'Dependência',
       excecao: 'Tratamento de exceção',
@@ -552,9 +561,9 @@ export const strings = {
     colSimulacao: 'Simulação no cockpit',
     detalheLabel: 'Detalhe do pacote',
     xml: {
-      titulo: 'Preview do XML do Migration Cockpit',
+      titulo: 'Prévia do XML do Migration Cockpit',
       nota: 'Gerado dos registros de fato, agora. Não é exemplo colado: o cabeçalho carrega a versão e o checksum do playbook que produziu estes valores.',
-      registrosNoPreview: 'primeiros registros',
+      registrosNoPreview: 'primeiros registros na prévia',
       bytesPorRegistro: 'bytes por registro',
     },
     conformidade: {
@@ -625,9 +634,11 @@ export const strings = {
     fecha: 'Fecha',
     naoFecha: 'Não fecha',
     semDiferenca: 'Sem diferença.',
+    contagemBloqueada:
+      'A esteira ainda não chegou ao passo 9. Enquanto ela está parada num checkpoint, o estado final de cada registro é projeção, não resultado — e reconciliar projeção não reconcilia nada.',
     registro: {
       titulo: 'Registro de defeitos por origem',
-      nota: 'As quatro origens da taxonomia, com o dono contratual de cada uma. Só a origem transformation é responsabilidade da Monoda — nas outras três a Monoda detecta, evidencia e roteia.',
+      nota: 'Exceções abertas na onda de fornecedores, classificadas pelas quatro origens da taxonomia, com o dono contratual de cada uma. Conta exceção aberta pela esteira, não defeito do extrato: o mapa do Mission Control mede o que chegou sujo, este mede o que a esteira reteve — e os dois números são diferentes de propósito. Só a origem transformation é responsabilidade da Monoda; nas outras três a Monoda detecta, evidencia e roteia.',
       monoda: 'Responsabilidade Monoda',
       outros: 'Responsabilidade de terceiros',
       colOrigem: 'Origem',

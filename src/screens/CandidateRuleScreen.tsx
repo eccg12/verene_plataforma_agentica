@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 
 import { paths } from '@/app/paths'
 import { Button } from '@/components/Button'
+import { dataBr, percentualBr } from '@/copy/format'
 import { strings } from '@/copy/strings'
 import {
   hipoteseDeReferencia,
@@ -21,9 +22,6 @@ import { useSimulation, type DecisaoDeCandidata } from '@/engine/store'
 
 const ICON = 13
 const t = strings.candidate
-
-const quando = (iso: string): string =>
-  `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
 
 /** A frase que o cliente precisa ouvir do fornecedor, não do concorrente. */
 function Limite() {
@@ -111,7 +109,7 @@ function Frequencia({ caso }: { readonly caso: CasoDaRegraCandidata }) {
         ))}
         <div className="min-w-[10rem] flex-1 bg-surface px-2 py-1.5">
           <p className="tnum text-xl leading-none text-held">
-            {caso.frequencia.percentual}
+            {percentualBr(caso.frequencia.percentual)}
             {strings.simbolos.porcento}
           </p>
           <p className="mt-1 text-2xs text-fg-subtle">{t.frequencia.percentual}</p>
@@ -210,7 +208,7 @@ function Contencao({ caso }: { readonly caso: CasoDaRegraCandidata }) {
           <dt className="text-fg-subtle">{c.area}</dt>
           <dd className="text-fg">{caso.area}</dd>
           <dt className="text-fg-subtle">{c.prazo}</dt>
-          <dd className="tnum text-fg">{quando(caso.prazo)}</dd>
+          <dd className="tnum text-fg">{dataBr(caso.prazo)}</dd>
           <dt className="text-fg-subtle">{c.severidade}</dt>
           <dd className="text-fg">{strings.severidades[caso.severidade as 'critical' | 'non-critical']}</dd>
         </dl>

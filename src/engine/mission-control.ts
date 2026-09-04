@@ -88,8 +88,8 @@ export const resumoRecebimento = {
 // ============================================================ mapa de defeitos do VEGA
 
 export interface TaxaDefeito {
+  /** Id do objeto ou da dimensão. O rótulo vem de `strings`, não do motor. */
   readonly chave: string
-  readonly rotulo: string
   readonly registros: number
   readonly defeitos: number
   /** Defeitos por 100 registros. */
@@ -99,30 +99,38 @@ export interface TaxaDefeito {
 
 interface FonteObjeto {
   readonly id: string
-  readonly rotulo: string
   readonly registros: number
   readonly defeitos: readonly { readonly spe: SpeId; readonly defeito: PlantedDefect }[]
 }
 
+/**
+ * SPEs cujo arquivo daquele objeto já foi recebido.
+ *
+ * O mapa de defeitos perfila O QUE CHEGOU, não o que a fixture tem. Sem este
+ * recorte, a tela dizia "71 registros lidos" num painel e "84 perfilados" no
+ * painel ao lado — dois números da mesma tela se contradizendo, que é
+ * exatamente o que um cliente atento soma.
+ */
+const spesRecebidas = (objetoId: string): ReadonlySet<SpeId> =>
+  new Set(arquivosRecebidos.filter((a) => a.objetoId === objetoId).map((a) => a.spe))
+
+function fonte<T extends { readonly spe: SpeId; readonly _plantedDefect: readonly PlantedDefect[] }>(
+  id: string,
+  registros: readonly T[],
+): FonteObjeto {
+  const recebidas = spesRecebidas(id)
+  const perfilados = registros.filter((r) => recebidas.has(r.spe))
+  return {
+    id,
+    registros: perfilados.length,
+    defeitos: perfilados.flatMap((r) => r._plantedDefect.map((d) => ({ spe: r.spe, defeito: d }))),
+  }
+}
+
 const FONTES: readonly FonteObjeto[] = [
-  {
-    id: 'fornecedores',
-    rotulo: 'Fornecedores',
-    registros: nasajonSuppliers.length,
-    defeitos: nasajonSuppliers.flatMap((s) => s._plantedDefect.map((d) => ({ spe: s.spe, defeito: d }))),
-  },
-  {
-    id: 'materiais-servicos',
-    rotulo: 'Materiais e serviços',
-    registros: nasajonMaterials.length,
-    defeitos: nasajonMaterials.flatMap((m) => m._plantedDefect.map((d) => ({ spe: m.spe, defeito: d }))),
-  },
-  {
-    id: 'contratos',
-    rotulo: 'Contratos',
-    registros: nasajonContracts.length,
-    defeitos: nasajonContracts.flatMap((c) => c._plantedDefect.map((d) => ({ spe: c.spe, defeito: d }))),
-  },
+  fonte('fornecedores', nasajonSuppliers),
+  fonte('materiais-servicos', nasajonMaterials),
+  fonte('contratos', nasajonContracts),
 ]
 
 const tipoDe = (defeito: PlantedDefect) => defectTypeByPlantedKind.get(defeito.kind)
@@ -133,7 +141,6 @@ const taxa = (defeitos: number, registros: number): number =>
 /** Taxa de defeito por objeto de escopo. */
 export const taxaPorObjeto: readonly TaxaDefeito[] = FONTES.map((fonte) => ({
   chave: fonte.id,
-  rotulo: fonte.rotulo,
   registros: fonte.registros,
   defeitos: fonte.defeitos.length,
   taxa: taxa(fonte.defeitos.length, fonte.registros),
@@ -149,7 +156,6 @@ export const taxaPorDimensao: readonly TaxaDefeito[] = qualityDimensions
     )
     return {
       chave: dimensao,
-      rotulo: dimensao,
       registros,
       defeitos: daDimensao.length,
       taxa: taxa(daDimensao.length, registros),
