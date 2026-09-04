@@ -204,6 +204,26 @@ lugar nenhum da tela, de propósito. O enriquecimento do NOVA mostra cada valor 
 Onde não há fonte que sustente o valor, não há proposta: CNAE aparece como "sem proposta" com o
 motivo, e é esse o caso que prova a regra.
 
+`/packages` (ORION, clara) é a tela de artefato. O XML do Migration Cockpit é **gerado dos
+registros de fato**, com a versão e o checksum do playbook no cabeçalho — é aí que o laço com o
+KANON fecha. O tamanho por registro é medido no XML gerado, e a divisão em partes é aritmética
+sobre esse número, contra os dois tetos (100 MB por arquivo, 500 registros por lote). A
+conformidade confere tamanho de campo, formato, integridade e faixa de numeração; **liberar uma
+exceção não lava o dado**, e é ORION que pega o campo obrigatório ainda vazio. Bloco de entrega
+formal com escopo, versão, exceções conhecidas e calendário; simulação no cockpit aprovada antes
+da liberação.
+
+`/reconciliation` (SIRIUS, escura) é a tela mais importante comercialmente. Reconcilia por
+contagem e por valor, por objeto e por SPE, e **toda diferença vem explicada** — há teste
+exigindo que diferença sem explicação falhe. Valor só aparece onde há montante (contratos):
+fornecedor é cadastro, e inventar um valor para preencher a tela seria número que não sobrevive
+a uma pergunta. O registro de defeitos usa as quatro cores categóricas do design system e separa
+visualmente **responsabilidade Monoda (origem `transformation`) de responsabilidade de
+terceiros**. O placar mede os quatro critérios de aceite, cada um com o Gate onde é medido
+(G2, G3, G4, G6) e com a frase de como o número foi obtido; os dois critérios de defeito medem
+**apenas** a origem `transformation`. A verificação guiada nos apps Fiori, por objeto, fecha a
+lacuna que a contagem não fecha e é registrada como evidência de Gate.
+
 **As telas se conectam pelo motor.** O checkpoint 1 exige duas assinaturas distintas: o SAP
 SME aprova tecnicamente e o data owner assina no Gate 1. Enquanto faltar qualquer uma, `/mapping`
 mostra o aviso e a esteira para no passo 3 — e o `/playbook` mostra as regras de ATLAS e NOVA com

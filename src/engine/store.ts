@@ -72,6 +72,12 @@ export interface SimulationState {
   confirmAllClusters: (decision: Decision) => void
   /** Idem para exceções. */
   decideAllExceptions: (decision: Decision) => void
+  /**
+   * Verificação no app Fiori, registrada como evidência de Gate. Não entra na
+   * esteira: é conferência humana no destino, depois da carga.
+   */
+  readonly verificacoesFiori: Readonly<Record<string, Signature>>
+  registrarVerificacaoFiori: (id: string, note?: string) => void
   reset: () => void
 }
 
@@ -111,6 +117,7 @@ function derivar(spe: SpeFilter, playbookVersion: string, approvals: Approvals):
 }
 
 const ESTADO_INICIAL = {
+  verificacoesFiori: {} as Readonly<Record<string, Signature>>,
   spe: 'SPE-1' as SpeFilter,
   ciclo: 'ciclo-1' as Cycle,
   playbookVersion: PLAYBOOK_VERSION,
@@ -209,6 +216,14 @@ export const useSimulation = create<SimulationState>((set, get) => {
       const excecoes = Object.fromEntries(get().run.exceptions.map((e) => [e.id, assinatura]))
       recomputar({ approvals: { ...get().approvals, excecoes } })
     },
+
+    registrarVerificacaoFiori: (id, note) =>
+      set({
+        verificacoesFiori: {
+          ...get().verificacoesFiori,
+          [id]: sign(signatories.pacote, 'approved', note),
+        },
+      }),
 
     reset: () =>
       set({

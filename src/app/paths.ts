@@ -9,6 +9,8 @@ export const paths = {
   record: '/record/:id',
   duplicates: '/review/duplicates',
   exceptions: '/review/exceptions',
+  packages: '/packages',
+  reconciliation: '/reconciliation',
   styleguide: '/styleguide',
 } as const
 

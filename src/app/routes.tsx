@@ -4,7 +4,9 @@ import { AppShell } from '@/components/AppShell'
 import { DuplicatesScreen } from '@/screens/DuplicatesScreen'
 import { ExceptionsScreen } from '@/screens/ExceptionsScreen'
 import { MappingScreen } from '@/screens/MappingScreen'
+import { PackagesScreen } from '@/screens/PackagesScreen'
 import { RecordScreen } from '@/screens/RecordScreen'
+import { ReconciliationScreen } from '@/screens/ReconciliationScreen'
 import { MissionControlScreen } from '@/screens/MissionControlScreen'
 import { PlaybookScreen } from '@/screens/PlaybookScreen'
 import { StyleguideScreen } from '@/screens/StyleguideScreen'
@@ -23,6 +25,8 @@ export const router = createBrowserRouter([
       { path: paths.record, element: <RecordScreen /> },
       { path: paths.duplicates, element: <DuplicatesScreen /> },
       { path: paths.exceptions, element: <ExceptionsScreen /> },
+      { path: paths.packages, element: <PackagesScreen /> },
+      { path: paths.reconciliation, element: <ReconciliationScreen /> },
       { path: paths.styleguide, element: <StyleguideScreen /> },
     ],
   },

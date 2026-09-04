@@ -1,4 +1,14 @@
-import { BookText, Copy, LayoutGrid, Palette, Route, TableProperties, TriangleAlert } from 'lucide-react'
+import {
+  BookText,
+  Copy,
+  LayoutGrid,
+  Package,
+  Palette,
+  Route,
+  Scale,
+  TableProperties,
+  TriangleAlert,
+} from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 import { paths } from '@/app/paths'
@@ -13,6 +23,8 @@ const ITENS = [
   { to: `${paths.recordBase}/F1001`, rotulo: strings.nav.record, Icone: Route },
   { to: paths.duplicates, rotulo: strings.nav.duplicates, Icone: Copy },
   { to: paths.exceptions, rotulo: strings.nav.exceptions, Icone: TriangleAlert },
+  { to: paths.packages, rotulo: strings.nav.packages, Icone: Package },
+  { to: paths.reconciliation, rotulo: strings.nav.reconciliation, Icone: Scale },
   { to: paths.styleguide, rotulo: strings.nav.styleguide, Icone: Palette },
 ] as const
 
