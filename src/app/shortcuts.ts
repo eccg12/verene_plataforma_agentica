@@ -12,6 +12,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { passoPorNumero } from '@/data/presentation'
+import { useEntry } from '@/entry/store'
 import { useSimulation } from '@/engine/store'
 
 export const TECLAS = {
@@ -37,6 +38,8 @@ export function useAtalhosDeApresentacao(): void {
     const aoTeclar = (evento: KeyboardEvent) => {
       if (evento.metaKey || evento.ctrlKey || evento.altKey) return
       if (digitandoEm(evento.target)) return
+      // Antes de entrar, o app está montado mas coberto: tecla não mexe nele.
+      if (!useEntry.getState().liberado) return
 
       const estado = useSimulation.getState()
       const { ativa, passo, notas } = estado.apresentacao

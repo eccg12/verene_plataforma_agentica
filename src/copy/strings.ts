@@ -113,6 +113,19 @@ export const strings = {
     intervalo: ' — ',
     noMinimo: '≥',
     noMaximo: '≤',
+    // Direção importa: quem presta para quem.
+    paraQuem: ' → ',
+  },
+  entrada: {
+    titulo: 'Acesso à demonstração',
+    usuario: 'Usuário',
+    senha: 'Senha',
+    entrar: 'Entrar',
+    // Mensagem única, sem contador e sem dizer qual dos dois campos errou.
+    erro: 'Credencial inválida',
+    // O portão sinaliza; não protege. Dizer isso na própria tela evita que
+    // alguém leia a senha como controle de segurança.
+    nota: 'O acesso identifica quem recebeu o link. Não protege dado: o ambiente é de demonstração e os dados são sintéticos.',
   },
   shell: {
     projectTitle: 'GALAXY | Transformação de Dados',

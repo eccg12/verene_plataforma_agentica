@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import { Button } from '@/components/Button'
 import { strings } from '@/copy/strings'
+import { useEntry } from '@/entry/store'
 import { AgentCard } from '@/narrative/AgentCard'
 import { prepararNivel } from '@/narrative/prepare'
 import { Spotlight } from '@/narrative/Spotlight'
@@ -160,6 +161,8 @@ export function NarrativeOverlay() {
     const aoTeclar = (evento: KeyboardEvent) => {
       const alvo = evento.target
       if (alvo instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(alvo.tagName)) return
+      // Antes de entrar, a cena 1 está montada mas coberta: tecla não a avança.
+      if (!useEntry.getState().liberado) return
       if (evento.key === 'ArrowRight' || evento.key === ' ' || evento.key === 'Spacebar') {
         evento.preventDefault()
         proxima()

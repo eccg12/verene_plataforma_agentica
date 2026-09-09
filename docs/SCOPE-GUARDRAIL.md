@@ -29,6 +29,7 @@ e promessa em demonstração vira expectativa que o projeto não cobre.
 
 | Tela | Artefato / critério | Gate | Artifact | Por quê |
 |---|---|---|---|---|
+| tela de entrada | *nenhum — e não precisa* | — | **entra** | Não é tela de conteúdo: é a porta do link. Não afirma nada sobre o projeto, não mostra número nem promete entregável, e diz no próprio texto que o acesso identifica quem recebeu o link e não protege dado. A regra deste documento vale para tela que sustenta argumento; esta não sustenta nenhum. |
 | `/mission-control` | A0 — escopo declarado e recibo de recepção | G0 | **entra** | O denominador de todo percentual medido depois. Sem ele, nenhum número dos Gates seguintes tem contra o que ser medido. |
 | `/mapping` | A1 — dicionário de mapeamento aprovado | G1 | **entra** | É o entregável do G1, campo a campo contra a configuração ativa do tenant, com as divergências do padrão SAP declaradas uma a uma. |
 | `/record/:id` | A2 — rastreabilidade em nível de campo | G2 | **entra** | É o que sustenta "100% transformados" na auditoria: valor de origem, regra aplicada com id e versão, valor final. |
@@ -64,6 +65,11 @@ declarado**, não promessa:
    "deixa passar, é só demonstração".
 2. Confirmar que `/gates/payment` está desligado no link enviado (sem
    `?flag=comercial`).
-3. Confirmar que o selo **Ambiente de demonstração — dados sintéticos** está
+3. **Enviar a senha por outro canal que não o link.** A credencial é
+   `admin` / a senha em `CREDENCIAL` (`src/entry/store.ts`, e a constante de mesmo nome no
+   artifact). Ela filtra quem chegou sem o link, não quem quer entrar: está em texto no
+   arquivo, e o cliente que abrir o inspetor a lê. Se isso não for aceitável, o que muda não é
+   a senha — é o canal de distribuição.
+4. Confirmar que o selo **Ambiente de demonstração — dados sintéticos** está
    visível na barra superior. Ele é permanente e não deve ser removido para a
    captura de tela ficar mais limpa.

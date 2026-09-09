@@ -23,7 +23,7 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } 
 import {
   AlertTriangle, ArrowLeft, ArrowRight, Boxes, Check, ChevronDown, ChevronRight, CircleDot,
   ClipboardCheck, Copy, Database, FileText, Fingerprint, Flag, GitBranch, Layers, Lock,
-  Minus, Network, Package, PenLine, Play, RefreshCw, Scale, Search, Shield, SplitSquareHorizontal,
+  LogIn, Minus, Network, Package, PenLine, Play, RefreshCw, Scale, Search, Shield, SplitSquareHorizontal,
   Compass, Pause, Table2, Target, Users, X, Zap,
 } from 'lucide-react'
 
@@ -210,6 +210,17 @@ const T = {
     escopoReal: 'Escopo declarado do projeto',
     explicacaoSubconjunto:
       'O escopo do projeto é de {escopo} registros em {pacotes} pacotes de carga. Esta demonstração roda sobre um subconjunto navegável de {amostra} registros, escolhido para conter todos os defeitos que a esteira precisa mostrar.',
+  },
+  entrada: {
+    titulo: 'Acesso à demonstração',
+    usuario: 'Usuário',
+    senha: 'Senha',
+    entrar: 'Entrar',
+    // Mensagem única, sem contador e sem dizer qual dos dois campos errou.
+    erro: 'Credencial inválida',
+    // O portão sinaliza; não protege. Dizer isso na própria tela evita que
+    // alguém leia a senha como controle de segurança.
+    nota: 'O acesso identifica quem recebeu o link. Não protege dado: o ambiente é de demonstração e os dados são sintéticos.',
   },
   shell: {
     versaoPlaybook: 'Playbook',
@@ -5998,6 +6009,15 @@ const ESTADO_INICIAL = {
   flags: { comercial: false },
   apresentacao: { ativa: false, passo: 1, notas: false },
   /**
+   * O portão da demonstração. É SINALIZAÇÃO, não segurança: a credencial está
+   * aqui no arquivo e quem abrir o inspetor a lê. O que ele faz é dar uma porta
+   * ao link enviado ao cliente, em vez de cair direto na tela.
+   *
+   * Por isso não há bloqueio por tentativa, captcha nem expiração: nada disso
+   * protegeria nada e só atrapalharia quem recebeu o link legitimamente.
+   */
+  entrada: { liberado: false, saindo: false },
+  /**
    * A camada narrada é o estado INICIAL: o protótipo abre explicando-se. Sair é
    * uma escolha ("Explorar livremente"), e retomar volta na cena onde parou.
    */
@@ -6123,8 +6143,17 @@ function reducer(estado, acao) {
       return comRun({ ...ESTADO_INICIAL,
         apresentacao: { ...estado.apresentacao, passo: 1, notas: false },
         // Reiniciar a onda não derruba a narração: quem está assistindo continua
-        // na cena em que estava.
-        narrativa: estado.narrativa })
+        // na cena em que estava. E não tranca a porta de novo: quem já entrou
+        // não é mandado de volta para a tela de senha no meio da sala.
+        narrativa: estado.narrativa,
+        entrada: estado.entrada })
+
+    /* ---------- portão da demonstração ---------- */
+    // `liberar` entra na transição; `concluir` tira a tela de cena ~300ms depois.
+    case 'entrada-liberar':
+      return { ...estado, entrada: { liberado: false, saindo: true } }
+    case 'entrada-concluir':
+      return { ...estado, entrada: { liberado: true, saindo: false } }
 
     /* ---------- camada narrada ---------- */
     /**
@@ -8302,6 +8331,7 @@ function CorpoDaCena({ cena }) {
 function NarrativeOverlay({ estado, dispatch }) {
   const t = T.narrativa
   const { ativa, cena: numero, automatico, pausado, encerrada } = estado.narrativa
+  const { liberado } = estado.entrada
   const cena = useMemo(() => cenaPorNumero(numero), [numero])
 
   // Modo automático: anda sozinho pelo tempo de leitura declarado na cena.
@@ -8318,6 +8348,8 @@ function NarrativeOverlay({ estado, dispatch }) {
     const aoTeclar = (evento) => {
       const alvo = evento.target
       if (alvo && ['INPUT', 'TEXTAREA', 'SELECT'].includes(alvo.tagName)) return
+      // Antes de entrar, a cena 1 está montada mas coberta: tecla não a avança.
+      if (!liberado) return
       if (evento.key === 'ArrowRight' || evento.key === ' ' || evento.key === 'Spacebar') {
         evento.preventDefault()
         dispatch({ tipo: 'cena-proxima' })
@@ -8330,7 +8362,7 @@ function NarrativeOverlay({ estado, dispatch }) {
     }
     window.addEventListener('keydown', aoTeclar)
     return () => window.removeEventListener('keydown', aoTeclar)
-  }, [ativa, dispatch])
+  }, [ativa, liberado, dispatch])
 
   // Fora da narrativa não há pino flutuante: quem entra e sai é o botão único da
   // barra superior, sempre no mesmo lugar.
@@ -8443,6 +8475,8 @@ function useAtalhos(estado, dispatch) {
     const aoTeclar = (evento) => {
       if (evento.metaKey || evento.ctrlKey || evento.altKey) return
       if (digitandoEm(evento.target)) return
+      // Antes de entrar, o app está montado mas coberto: tecla não mexe nele.
+      if (!estado.entrada.liberado) return
       const { ativa, notas, passo } = estado.apresentacao
       const tecla = evento.key
 
@@ -8475,7 +8509,7 @@ function useAtalhos(estado, dispatch) {
     }
     window.addEventListener('keydown', aoTeclar)
     return () => window.removeEventListener('keydown', aoTeclar)
-  }, [estado.apresentacao, dispatch])
+  }, [estado.apresentacao, estado.entrada.liberado, dispatch])
 }
 
 function PresenterBar({ estado, dispatch }) {
@@ -8715,7 +8749,123 @@ function SideNav({ estado, ir }) {
 }
 
 /* ========================================================================== */
-/* 29. O COMPONENTE                                                           */
+/* 29. A TELA DE ENTRADA                                                      */
+/* ========================================================================== */
+
+/**
+ * A credencial da demonstração. **Muda aqui e em nenhum outro lugar** — a tela
+ * lê o usuário daqui para pré-preencher o campo.
+ *
+ * Está em texto claro, e é para estar: ver o comentário do portão em
+ * `ESTADO_INICIAL`. Quem abrir o inspetor lê. O que o portão faz é dar uma porta
+ * ao link, não proteger dado — não há dado real aqui para proteger.
+ */
+const CREDENCIAL = { usuario: 'admin', senha: 'verene2026' }
+
+/** Duração da transição para a cena 1 da narrativa. */
+const TRANSICAO_MS = 300
+
+const credencialConfere = (usuario, senha) =>
+  usuario.trim() === CREDENCIAL.usuario && senha === CREDENCIAL.senha
+
+function CampoDeEntrada({ rotulo, tipo, valor, aoMudar, aoConfirmar, foco }) {
+  return (
+    <label className="block">
+      <span className="k-text-subtle text-[9.5px] k-caps">{rotulo}</span>
+      <input
+        type={tipo}
+        value={valor}
+        onChange={(e) => aoMudar(e.target.value)}
+        // Não há elemento de formulário: o Enter é tratado aqui.
+        onKeyDown={(e) => { if (e.key === 'Enter') aoConfirmar() }}
+        autoFocus={foco}
+        autoComplete="off"
+        className="k-t mt-1 h-7 w-full border k-bd-strong k-bg-sunken px-2 text-[12.5px] k-text"
+      />
+    </label>
+  )
+}
+
+/**
+ * O primeiro momento do produto.
+ *
+ * O app inteiro já está montado atrás desta tela, na cena 1 da narrativa.
+ * Quando a credencial confere, ela desaparece em ~300ms e revela o que já
+ * estava lá: nada monta durante a animação, então não há salto nem tela branca.
+ *
+ * O usuário vem preenchido — a pessoa só digita a senha. Sem contador de
+ * tentativa, sem captcha, sem expiração.
+ */
+function EntryScreen({ estado, dispatch }) {
+  const t = T.entrada
+  const { liberado, saindo } = estado.entrada
+  const [usuario, setUsuario] = useState(CREDENCIAL.usuario)
+  const [senha, setSenha] = useState('')
+  const [erro, setErro] = useState(false)
+
+  // A transição termina sozinha; `prefers-reduced-motion` zera a duração no CSS
+  // e o relógio continua o mesmo: some na hora.
+  useEffect(() => {
+    if (!saindo) return undefined
+    const relogio = window.setTimeout(() => dispatch({ tipo: 'entrada-concluir' }), TRANSICAO_MS)
+    return () => window.clearTimeout(relogio)
+  }, [saindo, dispatch])
+
+  if (liberado) return null
+
+  const tentar = () => {
+    if (credencialConfere(usuario, senha)) {
+      dispatch({ tipo: 'entrada-liberar' })
+      return
+    }
+    setErro(true)
+  }
+  // Digitar de novo limpa o erro: a mensagem fala da tentativa, não da pessoa.
+  const digitar = (aplicar) => (v) => { setErro(false); aplicar(v) }
+
+  // Durante a transição a tela continua capturando clique, mesmo invisível:
+  // liberar o ponteiro antes da hora deixaria o clique cair na área que avança
+  // a narrativa, e o cliente veria a cena 2 sem ter pedido.
+  return (
+    <div
+      className={`k-ink k-t fixed inset-0 z-[60] flex items-center justify-center k-bg p-6
+        ${saindo ? 'opacity-0' : 'opacity-100'}`}
+      style={{ transitionProperty: 'opacity', transitionDuration: `${TRANSICAO_MS}ms` }}
+    >
+      {/* A identidade primeiro, a credencial depois — nesta ordem quem abre o
+          link sabe onde chegou antes de ser perguntado quem é. */}
+      <div className="w-full max-w-md">
+        <div className="k-text text-[19px] font-semibold tracking-wide">{T.produto.nome}</div>
+        <p className="k-text-muted text-[12.5px] mt-1">{T.produto.subtitulo}</p>
+        <p className="k-text-subtle text-[11px] mt-0.5">
+          {T.produto.fornecedor} → {T.produto.cliente}
+        </p>
+
+        <div className="mt-4"><DemoBadge /></div>
+
+        <div className="mt-5 border k-bd k-bg-raised p-4">
+          <p className="k-text-subtle text-[9.5px] k-caps">{t.titulo}</p>
+          <div className="mt-3 space-y-2">
+            <CampoDeEntrada rotulo={t.usuario} tipo="text" valor={usuario}
+              aoMudar={digitar(setUsuario)} aoConfirmar={tentar} />
+            <CampoDeEntrada rotulo={t.senha} tipo="password" valor={senha}
+              aoMudar={digitar(setSenha)} aoConfirmar={tentar} foco />
+          </div>
+          <div className="mt-4 flex items-center gap-3">
+            <Botao variante="fill" icone={LogIn} onClick={tentar}>{t.entrar}</Botao>
+            {/* `role="alert"` para leitor de tela anunciar sem mover o foco. */}
+            {erro ? <p role="alert" className="k-fg-exception text-[12px]">{t.erro}</p> : null}
+          </div>
+        </div>
+
+        <p className="k-text-subtle text-[10px] leading-relaxed mt-4">{t.nota}</p>
+      </div>
+    </div>
+  )
+}
+
+/* ========================================================================== */
+/* 30. O COMPONENTE                                                           */
 /* ========================================================================== */
 
 export default function KeplerGalaxy() {
@@ -8803,6 +8953,8 @@ export default function KeplerGalaxy() {
       {/* A camada narrada fica por cima de tudo — inclusive do modo de
           apresentação, que conduz quem apresenta, não quem assiste. */}
       <NarrativeOverlay estado={estado} dispatch={dispatch} />
+      {/* Por cima de tudo, inclusive da narrativa: é a primeira coisa da sala. */}
+      <EntryScreen estado={estado} dispatch={dispatch} />
     </div>
   )
 }

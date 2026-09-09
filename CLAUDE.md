@@ -353,6 +353,45 @@ o passo, que é o que permite remostrar depois de uma pergunta. Há teste para o
 **O selo de ambiente de demonstração é permanente**, em toda tela, sem tecla para esconder. Um
 protótipo bem feito parece um sistema — e é por parecer que ele precisa dizer que não é.
 
+## A tela de entrada
+
+O link vai para o cliente, então o protótipo abre numa porta: `src/entry/`. Ela é
+**sinalização, não segurança**, e a tela diz isso em texto — a credencial vive no código e
+qualquer um que abra o inspetor a lê, inclusive no artifact, que é um arquivo de texto. O que
+ela faz é marcar o início da sala e dar uma porta ao link; não há dado real atrás dela para
+proteger.
+
+Por isso, deliberadamente, **não existe**: bloqueio por tentativa, captcha, contador de erros
+nem expiração de sessão. Nada disso protegeria nada aqui e só atrapalharia quem recebeu o link
+legitimamente. O usuário vem preenchido com `admin` — a pessoa só digita a senha —, e o erro é
+uma frase só, "Credencial inválida", que não diz qual dos dois campos errou e some quando se
+digita de novo. `src/entry/__tests__/entry.test.ts` trava cada uma dessas ausências, porque são
+o tipo de coisa que alguém "melhora" por reflexo depois.
+
+A credencial vive em **um lugar só**, `CREDENCIAL` em `src/entry/store.ts` (e a constante de
+mesmo nome no artifact). Trocar a senha é editar essa linha.
+
+**A transição é de 300ms e é o argumento da tela.** O app inteiro já está montado atrás dela,
+na cena 1 da narrativa; quando a credencial confere, a entrada desbota e revela o que já
+estava lá. Nada monta durante a animação, então não há salto nem tela em branco — é o que faz
+o primeiro momento parecer plataforma e não formulário. Duas consequências que precisam
+continuar valendo:
+
+- **Nada responde ao teclado antes de entrar.** O app está montado, apenas coberto. Os atalhos
+  do apresentador e as setas da narrativa checam `liberado` antes de agir, senão o Enter da
+  senha avançaria a cena por baixo.
+- **Durante os 300ms a tela continua capturando clique**, mesmo invisível. Liberar o ponteiro
+  antes da hora deixaria o clique cair na área que avança a narrativa, e o cliente veria a cena
+  2 sem ter pedido.
+
+Estado em memória (regra 6): recarregar pede a senha de novo, e não há sessão para expirar.
+`reset()` **não** tranca a porta — quem já entrou não volta para a tela de senha no meio da
+sala. Sem elemento de formulário: o Enter é tratado no campo, para a tela ser a mesma nos dois
+lados.
+
+> Toda sonda de navegador precisa entrar antes de medir qualquer outra coisa. O ajudante é
+> `scratchpad/entrar.mjs`.
+
 ## Camada narrada
 
 O modo de apresentação conduz **quem apresenta**. A camada narrada (`src/narrative/`) conduz
